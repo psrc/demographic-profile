@@ -86,4 +86,4 @@ We know what tables we use, they are the same from year to year but the process 
 4. Create <b>GIS-like</b> static maps using ggplot2 in <b>R</b>.
 5. Use RMarkdown to knit together a nice pdf report of our demographic profile using our nifty tables and maps from above.
 
-This should be fun - and I am sure a little frustrating - as we try to use our tools to make this product new but feel old!
+This should be fun!
