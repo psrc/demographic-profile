@@ -1,20 +1,20 @@
 # Regional Demographic Profile
 The Puget Sound Regional Council (PSRC) is the federally designated metropolitan planning organization, as well as the state-designated regional transportation planning organization, for the central Puget Sound region. PSRC is responsible for developing and regularly updating the region’s long-range transportation plan as well as distributing federal transportation funds to local projects through its transportation improvement program. In 2003, PSRC developed a baseline demographic profile as an initial step toward better integrating environmental justice into its transportation work program. That profile is updated to present current demographic data describing the central Puget Sound region each year to identify population groups and communities to be considered for subsequent environmental justice analyses and activities.
 
-## Data
-The data for the Regional Demographic Profile is pulled from a variety of tables from the latest 1-yr and 5yr American Community Survey(ACS) estimates for the four (4) counties that make up PSRC (King, Kitsap, Pierce and Snohomish). The tables summarizzed in the profile are:
+## Summary Tables
+The data for the Regional Demographic Profile is pulled from a variety of tables from the latest 1-yr and 5yr American Community Survey (ACS) estimates for the four (4) counties that make up PSRC (King, Kitsap, Pierce and Snohomish). In all, there are eleven (11) tables in the Demographic Profile which are mainly derived from ACS 1year data with a few relying on 5yr data and 1 coming from the Public Use Microdata Sample (PUMS) Data. The eleven (11) summary tables in the document are:
 
-- Population by Race and Hispanic/Latino Origin (1yr)
-- Poverty Statistics (1yr)
-- Poverty Rates by Race and Hispanic/Latino Origin (5yr)
-- Median Household Income by Race and Hispanic/Latino Origin of Householder (1yr)
-- Poverty Rate for the Population Age 65 and Over (1yr)
-- Poverty Rate for the Population Under 18 (1yr)
-- Poverty Rate for Persons with a Disability (1yr)
-- Households with No Vehicle (1yr PUMS data)
-- Persons with Limited English Proficiency (1yr)
-- Language Spoken at Home by Ability to Speak English (5yr)
-- Common Languages Other Than English Spoken in the Central Puget Sound (5yr)
+1. Population by Race and Hispanic/Latino Origin (1yr)
+2. Poverty Statistics (1yr)
+3. Poverty Rates by Race and Hispanic/Latino Origin (5yr)
+4. Median Household Income by Race and Hispanic/Latino Origin of Householder (1yr)
+5. Poverty Rate for the Population Age 65 and Over (1yr)
+6. Poverty Rate for the Population Under 18 (1yr)
+7. Poverty Rate for Persons with a Disability (1yr)
+8. Households with No Vehicle (1yr PUMS data)
+9. Persons with Limited English Proficiency (1yr)
+10. Language Spoken at Home by Ability to Speak English (5yr)
+11. Common Languages Other Than English Spoken in the Central Puget Sound (5yr)
 
 These tables were created from a variety of census data tables. The specific census tables needed for the creation of this report are:
 
@@ -39,3 +39,23 @@ These tables were created from a variety of census data tables. The specific cen
 - Table B19013G. Median Household Income in the Past 12 Months (in 2016 Inflation-Adjusted Dollars) (Two or More Races Householder)
 - Table B19013H. Median Household Income in the Past 12 Months (in 2016 Inflation-Adjusted Dollars) (Hispanic or Latino Householder)
 - Table B19013I. Median Household Income in the Past 12 Months (in 2016 Inflation-Adjusted Dollars) (White Alone, Not Hispanic or Latino Householder)
+
+### ACS 5 Year
+- Table B02001. Race
+- Table B03002. Hispanic or Latino by Race
+- Table B17001. Poverty Status in the Past 12 Months by Sex by Age
+- Table B17001A. Poverty Status in the Past 12 Months by Sex by Age (White Alone)
+- Table B17001B. Poverty Status in the Past 12 Months by Sex by Age (Black or African American Alone)
+- Table B17001C. Poverty Status in the Past 12 Months by Sex by Age (American Indian and Alaskan Native Alone)
+- Table B17001D. Poverty Status in the Past 12 Months by Sex by Age (Asian Alone)
+- Table B17001E. Poverty Status in the Past 12 Months by Sex by Age (Native Hawaiian and Other Pacific Islander Alone)
+- Table B17001F. Poverty Status in the Past 12 Months by Sex by Age (Some Other Race Alone)
+- Table B17001G. Poverty Status in the Past 12 Months by Sex by Age (Two or More Races Alone)
+- Table B17001H. Poverty Status in the Past 12 Months by Sex by Age (Hispanic or Latino)
+- Table B17001I. Poverty Status in the Past 12 Months by Sex by Age (White Alone, Not Hispanic or Latino)
+
+### ACS 1 Year PUMS Data
+- Vehicles available (zero, 1 or more) by poverty status (universe: occupied housing units)
+- Vehicles available (zero, 1 or more) by presence of one or more household members with a disability (universe: occupied housing units)
+
+## Maps
