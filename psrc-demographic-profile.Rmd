@@ -1,0 +1,161 @@
+---
+title: "Central Puget Sound Demographic Profile"
+date: "Spring 2021"
+output: 
+  pdf_document:
+    toc: true
+    toc_depth: 4
+---
+
+
+```{r data-processing, include=FALSE}
+
+# Packages for Data Cleaning/Processing
+library(dplyr)
+
+# Database Connection
+library(odbc)
+library(DBI)
+
+# Packages for Chart creation
+library(ggplot2)
+library(scales)
+
+# Packages for Markdown
+library(knitr)
+
+source("functions.R")
+source("inputs.R")
+
+results <- NULL
+
+######################################################################################################################################################
+######################################################################################################################################################
+### Step 1: Load Census Tables from Elmer into R and add a Region total for all tables
+######################################################################################################################################################
+######################################################################################################################################################
+for (c.tbl in names(census.tables)) {
+  
+  # Create query for the stored procedure and put that table into the results list - 1yr
+  q <- paste0("exec census.census_table_pivoted ", yr, ", 'County', '", census.tables[[c.tbl]][[3]], "', '",census.tables[[c.tbl]][[1]],"', 1, 1")
+  results[["tables"]][[census.tables[[c.tbl]][[3]]]][[census.tables[[c.tbl]][[1]]]] <- stored.procedure.from.db(server.name, database.name, q)
+  
+  # Add total for region
+  region <- results[["tables"]][[census.tables[[c.tbl]][[3]]]][[census.tables[[c.tbl]][[1]]]] %>%
+    select(-geography_name, -geoid) %>%
+    summarize_all(sum) %>%
+    mutate(geography_name="Region",geoid="53033035053061")
+  
+  results[["tables"]][[census.tables[[c.tbl]][[3]]]][[census.tables[[c.tbl]][[1]]]] <- bind_rows(results[["tables"]][[census.tables[[c.tbl]][[3]]]][[census.tables[[c.tbl]][[1]]]],region)
+}
+
+######################################################################################################################################################
+######################################################################################################################################################
+### Step 2: Store numeric results for metrics used in summary calculations for document
+######################################################################################################################################################
+######################################################################################################################################################
+for (c in counties) {
+
+  # Race variables
+  
+  # --- Totals
+  results[['totals']][[c]][['total-population']] <- results[['tables']][['ACS1']][['B03002']] %>% filter(geography_name %in% c) %>% pull(`Total:`) %>% sum()
+  results[['totals']][[c]][['white']] <- results[['tables']][['ACS1']][['B03002']] %>% filter(geography_name %in% c) %>% pull(`Total:!!Not Hispanic or Latino:!!White alone`) %>% sum()
+  results[['totals']][[c]][['black']] <- results[['tables']][['ACS1']][['B03002']] %>% filter(geography_name %in% c) %>% pull(`Total:!!Not Hispanic or Latino:!!Black or African American alone`) %>% sum()
+  results[['totals']][[c]][['native-american']] <- results[['tables']][['ACS1']][['B03002']] %>% filter(geography_name %in% c) %>% pull(`Total:!!Not Hispanic or Latino:!!American Indian and Alaska Native alone`) %>% sum()
+  results[['totals']][[c]][['asian']] <- results[['tables']][['ACS1']][['B03002']] %>% filter(geography_name %in% c) %>% pull(`Total:!!Not Hispanic or Latino:!!Asian alone`) %>% sum()
+  results[['totals']][[c]][['pacific-islander']] <- results[['tables']][['ACS1']][['B03002']] %>% filter(geography_name %in% c) %>% pull(`Total:!!Not Hispanic or Latino:!!Native Hawaiian and Other Pacific Islander alone`) %>% sum()
+  results[['totals']][[c]][['asian-pacific-islander']] <- results[['totals']][[c]][['asian']] + results[['totals']][[c]][['pacific-islander']]
+  results[['totals']][[c]][['other']] <- results[['tables']][['ACS1']][['B03002']] %>% filter(geography_name %in% c) %>% pull(`Total:!!Not Hispanic or Latino:!!Some other race alone`) %>% sum()
+  results[['totals']][[c]][['two-or-more']] <- results[['tables']][['ACS1']][['B03002']] %>% filter(geography_name %in% c) %>% pull(`Total:!!Not Hispanic or Latino:!!Two or more races:`) %>% sum()
+  results[['totals']][[c]][['other-two-or-more']] <- results[['totals']][[c]][['other']] + results[['totals']][[c]][['two-or-more']]
+  results[['totals']][[c]][['hispanic-latino']] <- results[['tables']][['ACS1']][['B03002']] %>% filter(geography_name %in% c) %>% pull(`Total:!!Hispanic or Latino:`) %>% sum()
+  results[['totals']][[c]][['non-white']] <- results[['totals']][[c]][['black']] + results[['totals']][[c]][['native-american']] + results[['totals']][[c]][['asian-pacific-islander']] + results[['totals']][[c]][['other-two-or-more']] + results[['totals']][[c]][['hispanic-latino']]
+  
+  # --- Shares
+  results[['shares']][[c]][['white']] <- results[['totals']][[c]][['white']] / results[['totals']][[c]][['total-population']]
+  results[['shares']][[c]][['black']] <- results[['totals']][[c]][['black']] / results[['totals']][[c]][['total-population']]
+  results[['shares']][[c]][['native-american']] <- results[['totals']][[c]][['native-american']] / results[['totals']][[c]][['total-population']]
+  results[['shares']][[c]][['asian']] <- results[['totals']][[c]][['asian']] / results[['totals']][[c]][['total-population']]
+  results[['shares']][[c]][['pacific-islander']] <- results[['totals']][[c]][['pacific-islander']] / results[['totals']][[c]][['total-population']]
+  results[['shares']][[c]][['asian-pacific-islander']] <- results[['totals']][[c]][['asian-pacific-islander']] / results[['totals']][[c]][['total-population']]
+  results[['shares']][[c]][['other']] <- results[['totals']][[c]][['other']] / results[['totals']][[c]][['total-population']]
+  results[['shares']][[c]][['two-or-more']] <- results[['totals']][[c]][['two-or-more']] / results[['totals']][[c]][['total-population']]
+  results[['shares']][[c]][['other-two-or-more']] <- results[['totals']][[c]][['other-two-or-more']] / results[['totals']][[c]][['total-population']]
+  results[['shares']][[c]][['hispanic-latino']] <- results[['totals']][[c]][['hispanic-latino']] / results[['totals']][[c]][['total-population']]
+  results[['shares']][[c]][['non-white']] <- results[['totals']][[c]][['non-white']] / results[['totals']][[c]][['total-population']]
+  
+}  
+  
+```
+
+\newpage
+# Introduction
+Since the mid-1990s, a renewed emphasis on environmental justice has become an integral part of the transportation planning process for urban regions in the United States. The concept of “environmental justice” is derived from Title VI of the Civil Rights Act of 1964 [^1] and other civil rights statutes, and was first put forth as a national policy goal by presidential Executive Order 12898, issued in 1994, which directs “each federal agency to make achieving environmental justice part of its mission by identifying and addressing, as appropriate, disproportionately high and adverse human health or environmental effects of its programs, policies, and activities on minority populations and low-income populations.” [^2]
+
+The U.S. Department of Transportation (DOT) responded to the directive with its DOT Order to Address Environmental Justice in Minority Populations and Low-Income Populations in 1997. [^3] The order laid out the following environmental justice principles to be integrated into federal transportation programs, policies, and activities:
+
+* To avoid, minimize, or mitigate disproportionately high and adverse human health and environmental effects, including social and economic effects, on minority and low-income populations.  
+* To ensure the full and fair participation by all potentially affected communities in the transportation decision-making process.  
+* To prevent the denial of, reduction in, or significant delay in the receipt of benefits by minority and low-income populations.  
+
+The DOT issued an updated internal Order in May 2012. DOT Order 5610.2(a) continues to be a key component of the Department’s strategy to promote the principles of environmental justice in all Departmental programs, policies, and activities.
+
+With this guidance, the Federal Highway Administration (FHWA) and Federal Transit Administration (FTA) renewed their commitments to ensure that environmental justice is carried out in the programs and strategies they fund including the activities of metropolitan planning organizations (MPOs). [^4] The FHWA has specifically directed MPOs to:
+
+* Enhance their analytical capabilities to ensure that their long-range transportation plan and their transportation improvement program comply with Title VI.
+* Identify residential, employment, and transportation patterns of low-income and minority populations so that their needs can be identified and addressed, and the benefits and burdens of transportation investments can be fairly distributed.
+* Evaluate and – where necessary – improve their public involvement processes to eliminate participation barriers and engage minority and low-income populations in transportation decision-making.
+
+The <b>Puget Sound Regional Council (PSRC)</b> is the federally designated metropolitan planning organization, as well as the state-designated regional transportation planning organization, for the central Puget Sound region. 
+
+\newpage
+Under these mandates, PSRC is responsible for developing and regularly updating the region’s long-range transportation plan, the Regional Transportation Plan, [^5] as well as distributing federal transportation funds to local projects through its transportation improvement program. In 2003, PSRC developed the baseline demographic profile as an initial step toward better integrating environmental justice into its transportation work program. [^6] That profile has now been updated to present current demographic data describing the central Puget Sound region to identify population groups and communities to be considered for subsequent environmental justice analyses and activities.
+
+# Objectives
+PSRC set out to meet two primary objectives in preparing this environmental justice demographic profile:
+
+* Compile key demographic data on minority and low-income populations in the central Puget Sound region, as well as other populations of interest, for environmental justice consideration in conducting regional transportation, economic development, and growth management planning and program activities and public outreach.
+* Identify the locations of communities within the region with significant minority and low-income populations to facilitate and enhance environmental justice analyses, outreach, and other planning activities.
+
+# Definitions
+Executive Order 12898, and the DOT, FHWA, and FTA orders on environmental justice address persons belonging to any of the following groups:
+
+## Minority Populations
+* Black - a person having origins in any of the black racial groups of Africa. 
+* American Indian and Alaskan Native - a person having origins in any of the original people of North America and who maintains cultural identification through tribal affiliation or community recognition. 
+* Asian - a person having origins in any of the original peoples of the Far East, Southeast Asia, or the Indian subcontinent.
+* Native Hawaiian and Other Pacific Islander – a person having origins in any of the original peoples of Hawaii, Guam, Samoa, or other Pacific Islands.  
+* Hispanic - a person of Mexican, Puerto Rican, Cuban, Central or South American, or other Spanish culture or origin, regardless of race.  
+
+## Low Income Population
+* Low-Income - a person whose household income (or in the case of a community or group, whose median household income) is at or below the U.S. Department of Health and Human Services (HHS) poverty guidelines. States and localities may, however, adopt a higher threshold for low-income as long as the higher threshold is not selectively implemented and is inclusive of all persons at or below the HHS poverty guidelines.  
+
+## Other Populations
+While the various orders on environmental justice require consideration of only minority and low-income populations as defined above, discussions of other populations protected by Title VI and related nondiscrimination statutes – such as the elderly, disabled, etc. – are encouraged in addressing environmental justice and Title VI in federally sponsored transportation programs, policies, and activities.  
+
+# Regional Data Profile Tables
+Drawing from the American Community Survey, PSRC compiled data tables of key demographic statistics on the region’s minority and low-income populations and other populations and characteristics of interest for environmental justice consideration. The data tables report statistics for the central Puget Sound region as a whole as well as each of its four counties – King, Kitsap, Pierce and Snohomish.
+
+Table 1. Population by Race and Hispanic/Latino Origin: <b>`r yr`</b>  
+Table 2. Poverty Statistics: <b>`r yr`</b>  
+Table 3. Poverty Rates by Race and Hispanic/Latino Origin: <b>`r yr-4`</b>-<b>`r yr`</b>    
+Table 4. Median Household Income by Race and Hispanic/Latino Origin of Householder: <b>`r yr`</b>  
+Table 5. Poverty Rate for the Population Age 65 and Over: <b>`r yr`</b>  
+Table 6: Poverty Rate for the Population Under 18: <b>`r yr`</b>  
+Table 7. Poverty Rate for Persons with a Disability: <b>`r yr`</b>  
+Table 8. Households with No Vehicle: <b>`r yr`</b>  
+Table 9. Persons with Limited English Proficiency: <b>`r yr`</b>  
+Table 10. Language Spoken at Home by Ability to Speak English: <b>`r yr-4`</b>-<b>`r yr`</b>  
+Table 11. Common Languages Other Than English Spoken in the Central Puget Sound: <b>`r yr`</b>  
+
+## Observations
+Tables 1 and 2 provide essential statistics on the region’s minority and low-income populations. Minorities, or non-White persons including White persons of Hispanic/Latino origin, comprised xx percent of the region’s total population in `r yr`. Minorities comprised the largest share of the population in King County <b>(`r round(results[['data.shares']][['King County']][['non-white']]*100,1)` percent)</b>, followed by Pierce County <b>(`r round(results[['data.shares']][['Pierce County']][['non-white']]*100,1)` percent)</b>, Snohomish County <b>(`r round(results[['data.shares']][['Snohomish County']][['non-white']]*100,1)` percent)</b>, and Kitsap County <b>(`r round(results[['data.shares']][['Kitsap County']][['non-white']]*100,1)` percent)</b>. All groups except White alone (down xx percent) and American Indian and Alaska Native (no change) increased their share of the population since 2016, with percent of total minority growing by xx percent in two years.
+
+[^1]: Title VI of the Civil Rights Act of 1964 states that “no person in the United States shall, on the ground of race, color, or national origin, be excluded from participation in, be denied the benefits of, or be subjected to discrimination under any program or activity receiving Federal financial assistance.” 
+[^2]: Executive Order 12898, Federal Actions to Address Environmental Justice in Minority Populations and Low-Income Populations, February 1994.
+[^3]: DOT Order to Address Environmental Justice in Minority Populations and Low-Income Populations, April 1997. 
+[^4]: FHWA Actions to Address Environmental Justice in Minority Populations and Low-Income Populations,June 2012; and FHWA and FTA Memorandum Implementing Title VI Requirements in Metropolitan and Statewide Planning, October 1999.
+[^5]: The Regional Transportation Plan -- 2018, Puget Sound Regional Council, Seattle WA, May 2010, <https://www.psrc.org/our-work/rtp>. 
+[^6]: Transportation 2040 Update, Appendix G: Environmental Justice, Puget Sound Regional Council, Seattle WA, May 2014, <https://www.psrc.org/sites/default/files/t2040update2014appendixg_0.pdf>.
+
