@@ -39,4 +39,4 @@ census.tables <- list("B01001.1yr" = list("B01001","Sex by Age","ACS1"),
                       "B17001I.5yr" = list("B17001I","Poverty Status in the Past 12 Months by Sex by Age (White Alone, Not Hispanic or Latino)", "ACS5")
 )
 
-counties <- list("King County", "Kitsap County", "Pierce County", "Snohomish County", "Region")
+counties <- list("King County", "Kitsap County", "Pierce County", "Snohomish County", "Central Puget Sound")

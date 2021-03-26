@@ -1,17 +1,28 @@
 ---
 title: "Central Puget Sound Demographic Profile"
-date: "Spring 2021"
+subtitle: "Spring 2021"
+date: | 
+  ![](images/psrc_logo.png){width=35%}
+
 output: 
   pdf_document:
     toc: true
     toc_depth: 4
----
 
+header-includes:
+  - \usepackage{titling}
+  - \setlength{\droptitle}{20em} 
+  
+include-before:
+- '`\newpage{}`{=latex}'
+---
 
 ```{r data-processing, include=FALSE}
 
 # Packages for Data Cleaning/Processing
 library(dplyr)
+library(data.table)
+library(tidycensus)
 
 # Database Connection
 library(odbc)
@@ -40,11 +51,22 @@ for (c.tbl in names(census.tables)) {
   q <- paste0("exec census.census_table_pivoted ", yr, ", 'County', '", census.tables[[c.tbl]][[3]], "', '",census.tables[[c.tbl]][[1]],"', 1, 1")
   results[["tables"]][[census.tables[[c.tbl]][[3]]]][[census.tables[[c.tbl]][[1]]]] <- stored.procedure.from.db(server.name, database.name, q)
   
-  # Add total for region
-  region <- results[["tables"]][[census.tables[[c.tbl]][[3]]]][[census.tables[[c.tbl]][[1]]]] %>%
-    select(-geography_name, -geoid) %>%
-    summarize_all(sum) %>%
-    mutate(geography_name="Region",geoid="53033035053061")
+  # Add total for region with calculated MoE for county to region aggregation
+  region.moe <- results[["tables"]][[census.tables[[c.tbl]][[3]]]][[census.tables[[c.tbl]][[1]]]] %>%
+    select(contains("MOE")) %>%
+    mutate(PSRC=1) %>%
+    group_by(PSRC) %>%
+    summarise_all(moe_sum)
+  
+  region.tot <- results[["tables"]][[census.tables[[c.tbl]][[3]]]][[census.tables[[c.tbl]][[1]]]] %>%
+    select(!contains("MOE"),-geography_name, -geoid) %>%
+    mutate(PSRC=1) %>%
+    group_by(PSRC) %>%
+    summarise_all(sum)  
+  
+  region <- inner_join(region.tot,region.moe,by="PSRC") %>%
+    mutate(geography_name="Central Puget Sound",geoid="53033035053061") %>%
+    select(-PSRC)
   
   results[["tables"]][[census.tables[[c.tbl]][[3]]]][[census.tables[[c.tbl]][[1]]]] <- bind_rows(results[["tables"]][[census.tables[[c.tbl]][[3]]]][[census.tables[[c.tbl]][[1]]]],region)
 }
@@ -59,34 +81,99 @@ for (c in counties) {
   # Race variables
   
   # --- Totals
-  results[['totals']][[c]][['total-population']] <- results[['tables']][['ACS1']][['B03002']] %>% filter(geography_name %in% c) %>% pull(`Total:`) %>% sum()
-  results[['totals']][[c]][['white']] <- results[['tables']][['ACS1']][['B03002']] %>% filter(geography_name %in% c) %>% pull(`Total:!!Not Hispanic or Latino:!!White alone`) %>% sum()
-  results[['totals']][[c]][['black']] <- results[['tables']][['ACS1']][['B03002']] %>% filter(geography_name %in% c) %>% pull(`Total:!!Not Hispanic or Latino:!!Black or African American alone`) %>% sum()
-  results[['totals']][[c]][['native-american']] <- results[['tables']][['ACS1']][['B03002']] %>% filter(geography_name %in% c) %>% pull(`Total:!!Not Hispanic or Latino:!!American Indian and Alaska Native alone`) %>% sum()
-  results[['totals']][[c]][['asian']] <- results[['tables']][['ACS1']][['B03002']] %>% filter(geography_name %in% c) %>% pull(`Total:!!Not Hispanic or Latino:!!Asian alone`) %>% sum()
-  results[['totals']][[c]][['pacific-islander']] <- results[['tables']][['ACS1']][['B03002']] %>% filter(geography_name %in% c) %>% pull(`Total:!!Not Hispanic or Latino:!!Native Hawaiian and Other Pacific Islander alone`) %>% sum()
-  results[['totals']][[c]][['asian-pacific-islander']] <- results[['totals']][[c]][['asian']] + results[['totals']][[c]][['pacific-islander']]
-  results[['totals']][[c]][['other']] <- results[['tables']][['ACS1']][['B03002']] %>% filter(geography_name %in% c) %>% pull(`Total:!!Not Hispanic or Latino:!!Some other race alone`) %>% sum()
-  results[['totals']][[c]][['two-or-more']] <- results[['tables']][['ACS1']][['B03002']] %>% filter(geography_name %in% c) %>% pull(`Total:!!Not Hispanic or Latino:!!Two or more races:`) %>% sum()
-  results[['totals']][[c]][['other-two-or-more']] <- results[['totals']][[c]][['other']] + results[['totals']][[c]][['two-or-more']]
-  results[['totals']][[c]][['hispanic-latino']] <- results[['tables']][['ACS1']][['B03002']] %>% filter(geography_name %in% c) %>% pull(`Total:!!Hispanic or Latino:`) %>% sum()
-  results[['totals']][[c]][['non-white']] <- results[['totals']][[c]][['black']] + results[['totals']][[c]][['native-american']] + results[['totals']][[c]][['asian-pacific-islander']] + results[['totals']][[c]][['other-two-or-more']] + results[['totals']][[c]][['hispanic-latino']]
+  results[['totals']][[c]][['race']][['total-population']] <- results[['tables']][['ACS1']][['B03002']] %>% filter(geography_name %in% c) %>% pull(`Total:`) %>% sum()
+  results[['totals']][[c]][['race']][['white']] <- results[['tables']][['ACS1']][['B03002']] %>% filter(geography_name %in% c) %>% pull(`Total:!!Not Hispanic or Latino:!!White alone`) %>% sum()
+  results[['totals']][[c]][['race']][['black']] <- results[['tables']][['ACS1']][['B03002']] %>% filter(geography_name %in% c) %>% pull(`Total:!!Not Hispanic or Latino:!!Black or African American alone`) %>% sum()
+  results[['totals']][[c]][['race']][['native-american']] <- results[['tables']][['ACS1']][['B03002']] %>% filter(geography_name %in% c) %>% pull(`Total:!!Not Hispanic or Latino:!!American Indian and Alaska Native alone`) %>% sum()
+  results[['totals']][[c]][['race']][['asian']] <- results[['tables']][['ACS1']][['B03002']] %>% filter(geography_name %in% c) %>% pull(`Total:!!Not Hispanic or Latino:!!Asian alone`) %>% sum()
+  results[['totals']][[c]][['race']][['pacific-islander']] <- results[['tables']][['ACS1']][['B03002']] %>% filter(geography_name %in% c) %>% pull(`Total:!!Not Hispanic or Latino:!!Native Hawaiian and Other Pacific Islander alone`) %>% sum()
+  results[['totals']][[c]][['race']][['asian-pacific-islander']] <- results[['totals']][[c]][['race']][['asian']] + results[['totals']][[c]][['race']][['pacific-islander']]
+  results[['totals']][[c]][['race']][['other']] <- results[['tables']][['ACS1']][['B03002']] %>% filter(geography_name %in% c) %>% pull(`Total:!!Not Hispanic or Latino:!!Some other race alone`) %>% sum()
+  results[['totals']][[c]][['race']][['two-or-more']] <- results[['tables']][['ACS1']][['B03002']] %>% filter(geography_name %in% c) %>% pull(`Total:!!Not Hispanic or Latino:!!Two or more races:`) %>% sum()
+  results[['totals']][[c]][['race']][['other-two-or-more']] <- results[['totals']][[c]][['race']][['other']] + results[['totals']][[c]][['race']][['two-or-more']]
+  results[['totals']][[c]][['race']][['hispanic-latino']] <- results[['tables']][['ACS1']][['B03002']] %>% filter(geography_name %in% c) %>% pull(`Total:!!Hispanic or Latino:`) %>% sum()
+  results[['totals']][[c]][['race']][['non-white']] <- results[['totals']][[c]][['race']][['black']] + results[['totals']][[c]][['race']][['native-american']] + results[['totals']][[c]][['race']][['asian-pacific-islander']] + results[['totals']][[c]][['race']][['other-two-or-more']] + results[['totals']][[c]][['race']][['hispanic-latino']]
   
   # --- Shares
-  results[['shares']][[c]][['white']] <- results[['totals']][[c]][['white']] / results[['totals']][[c]][['total-population']]
-  results[['shares']][[c]][['black']] <- results[['totals']][[c]][['black']] / results[['totals']][[c]][['total-population']]
-  results[['shares']][[c]][['native-american']] <- results[['totals']][[c]][['native-american']] / results[['totals']][[c]][['total-population']]
-  results[['shares']][[c]][['asian']] <- results[['totals']][[c]][['asian']] / results[['totals']][[c]][['total-population']]
-  results[['shares']][[c]][['pacific-islander']] <- results[['totals']][[c]][['pacific-islander']] / results[['totals']][[c]][['total-population']]
-  results[['shares']][[c]][['asian-pacific-islander']] <- results[['totals']][[c]][['asian-pacific-islander']] / results[['totals']][[c]][['total-population']]
-  results[['shares']][[c]][['other']] <- results[['totals']][[c]][['other']] / results[['totals']][[c]][['total-population']]
-  results[['shares']][[c]][['two-or-more']] <- results[['totals']][[c]][['two-or-more']] / results[['totals']][[c]][['total-population']]
-  results[['shares']][[c]][['other-two-or-more']] <- results[['totals']][[c]][['other-two-or-more']] / results[['totals']][[c]][['total-population']]
-  results[['shares']][[c]][['hispanic-latino']] <- results[['totals']][[c]][['hispanic-latino']] / results[['totals']][[c]][['total-population']]
-  results[['shares']][[c]][['non-white']] <- results[['totals']][[c]][['non-white']] / results[['totals']][[c]][['total-population']]
+  results[['shares']][[c]][['race']][['white']] <- results[['totals']][[c]][['race']][['white']] / results[['totals']][[c]][['race']][['total-population']]
+  results[['shares']][[c]][['race']][['black']] <- results[['totals']][[c]][['race']][['black']] / results[['totals']][[c]][['race']][['total-population']]
+  results[['shares']][[c]][['race']][['native-american']] <- results[['totals']][[c]][['race']][['native-american']] / results[['totals']][[c]][['race']][['total-population']]
+  results[['shares']][[c]][['race']][['asian']] <- results[['totals']][[c]][['race']][['asian']] / results[['totals']][[c]][['race']][['total-population']]
+  results[['shares']][[c]][['race']][['pacific-islander']] <- results[['totals']][[c]][['race']][['pacific-islander']] / results[['totals']][[c]][['race']][['total-population']]
+  results[['shares']][[c]][['race']][['asian-pacific-islander']] <- results[['totals']][[c]][['race']][['asian-pacific-islander']] / results[['totals']][[c]][['race']][['total-population']]
+  results[['shares']][[c]][['race']][['other']] <- results[['totals']][[c]][['race']][['other']] / results[['totals']][[c]][['race']][['total-population']]
+  results[['shares']][[c]][['race']][['two-or-more']] <- results[['totals']][[c]][['race']][['two-or-more']] / results[['totals']][[c]][['race']][['total-population']]
+  results[['shares']][[c]][['race']][['other-two-or-more']] <- results[['totals']][[c]][['race']][['other-two-or-more']] / results[['totals']][[c]][['race']][['total-population']]
+  results[['shares']][[c]][['race']][['hispanic-latino']] <- results[['totals']][[c]][['race']][['hispanic-latino']] / results[['totals']][[c]][['race']][['total-population']]
+  results[['shares']][[c]][['race']][['non-white']] <- results[['totals']][[c]][['race']][['non-white']] / results[['totals']][[c]][['race']][['total-population']]
+  
+  # Poverty variables
+  # --- Totals
+  results[['totals']][[c]][['poverty']][['total-population']] <- results[['tables']][['ACS1']][['C17002']] %>% filter(geography_name %in% c) %>% pull(`Total:`) %>% sum()
+  results[['totals']][[c]][['poverty']][['under-50%']] <- results[['tables']][['ACS1']][['C17002']] %>% filter(geography_name %in% c) %>% pull(`Total:!!Under .50`) %>% sum()
+  results[['totals']][[c]][['poverty']][['50%-100%']] <- results[['tables']][['ACS1']][['C17002']] %>% filter(geography_name %in% c) %>% pull(`Total:!!.50 to .99`) %>% sum()
+  results[['totals']][[c]][['poverty']][['100%-125%']] <- results[['tables']][['ACS1']][['C17002']] %>% filter(geography_name %in% c) %>% pull(`Total:!!1.00 to 1.24`) %>% sum()
+  results[['totals']][[c]][['poverty']][['125%-150%']] <- results[['tables']][['ACS1']][['C17002']] %>% filter(geography_name %in% c) %>% pull(`Total:!!1.25 to 1.49`) %>% sum()
+  results[['totals']][[c]][['poverty']][['150%-185%']] <- results[['tables']][['ACS1']][['C17002']] %>% filter(geography_name %in% c) %>% pull(`Total:!!1.50 to 1.84`) %>% sum()
+  results[['totals']][[c]][['poverty']][['185%-200%']] <- results[['tables']][['ACS1']][['C17002']] %>% filter(geography_name %in% c) %>% pull(`Total:!!1.85 to 1.99`) %>% sum()
+  results[['totals']][[c]][['poverty']][['over-200%']] <- results[['tables']][['ACS1']][['C17002']] %>% filter(geography_name %in% c) %>% pull(`Total:!!2.00 and over`) %>% sum()
+  
+  results[['totals']][[c]][['poverty']][['under-100%']] <- results[['totals']][[c]][['poverty']][['under-50%']] + results[['totals']][[c]][['poverty']][['50%-100%']]
+  results[['totals']][[c]][['poverty']][['under-150%']] <- results[['totals']][[c]][['poverty']][['under-100%']] + results[['totals']][[c]][['poverty']][['100%-125%']] + results[['totals']][[c]][['poverty']][['125%-150%']]
+  results[['totals']][[c]][['poverty']][['under-200%']] <- results[['totals']][[c]][['poverty']][['under-150%']] + results[['totals']][[c]][['poverty']][['150%-185%']] + results[['totals']][[c]][['poverty']][['185%-200%']]
+
+  # --- MoE
+  results[['moe']][[c]][['poverty']][['total-population']] <- results[['tables']][['ACS1']][['C17002']] %>% filter(geography_name %in% c) %>% pull(`Total:_MOE`) %>% sum()
+  results[['moe']][[c]][['poverty']][['under-50%']] <- results[['tables']][['ACS1']][['C17002']] %>% filter(geography_name %in% c) %>% pull(`Total:!!Under .50_MOE`) %>% sum()
+  results[['moe']][[c]][['poverty']][['50%-100%']] <- results[['tables']][['ACS1']][['C17002']] %>% filter(geography_name %in% c) %>% pull(`Total:!!.50 to .99_MOE`) %>% sum()
+  results[['moe']][[c]][['poverty']][['100%-125%']] <- results[['tables']][['ACS1']][['C17002']] %>% filter(geography_name %in% c) %>% pull(`Total:!!1.00 to 1.24_MOE`) %>% sum()
+  results[['moe']][[c]][['poverty']][['125%-150%']] <- results[['tables']][['ACS1']][['C17002']] %>% filter(geography_name %in% c) %>% pull(`Total:!!1.25 to 1.49_MOE`) %>% sum()
+  results[['moe']][[c]][['poverty']][['150%-185%']] <- results[['tables']][['ACS1']][['C17002']] %>% filter(geography_name %in% c) %>% pull(`Total:!!1.50 to 1.84_MOE`) %>% sum()
+  results[['moe']][[c]][['poverty']][['185%-200%']] <- results[['tables']][['ACS1']][['C17002']] %>% filter(geography_name %in% c) %>% pull(`Total:!!1.85 to 1.99_MOE`) %>% sum()
+  results[['moe']][[c]][['poverty']][['over-200%']] <- results[['tables']][['ACS1']][['C17002']] %>% filter(geography_name %in% c) %>% pull(`Total:!!2.00 and over_MOE`) %>% sum()
+  
+  results[['moe']][[c]][['poverty']][['under-100%']] <- sqrt( (results[['moe']][[c]][['poverty']][['under-50%']])^2 + (results[['moe']][[c]][['poverty']][['50%-100%']])^2)
+  
+  results[['moe']][[c]][['poverty']][['under-150%']] <- sqrt( (results[['moe']][[c]][['poverty']][['under-50%']])^2 + (results[['moe']][[c]][['poverty']][['50%-100%']])^2 + (results[['moe']][[c]][['poverty']][['100%-125%']])^2 + (results[['moe']][[c]][['poverty']][['125%-150%']])^2)
+  
+  results[['moe']][[c]][['poverty']][['under-200%']] <- sqrt( (results[['moe']][[c]][['poverty']][['under-50%']])^2 + (results[['moe']][[c]][['poverty']][['50%-100%']])^2 + (results[['moe']][[c]][['poverty']][['100%-125%']])^2 + (results[['moe']][[c]][['poverty']][['125%-150%']])^2 + (results[['moe']][[c]][['poverty']][['150%-185%']])^2 + (results[['moe']][[c]][['poverty']][['185%-200%']])^2)
+    
+  # --- Shares
+  results[['shares']][[c]][['poverty']][['under-100%']] <- results[['totals']][[c]][['poverty']][['under-100%']] / results[['totals']][[c]][['poverty']][['total-population']]
+  results[['shares']][[c]][['poverty']][['under-150%']] <- results[['totals']][[c]][['poverty']][['under-150%']] / results[['totals']][[c]][['poverty']][['total-population']]
+  results[['shares']][[c]][['poverty']][['under-200%']] <- results[['totals']][[c]][['poverty']][['under-200%']] / results[['totals']][[c]][['poverty']][['total-population']]
   
 }  
+
+######################################################################################################################################################
+######################################################################################################################################################
+### Step 3: Create Tables
+######################################################################################################################################################
+######################################################################################################################################################
+tbl.poverty <- data.table(`Geography`=character(), `Total Population - Estimate`=numeric(), `Total Population - MoE`=numeric(),
+                          `Below 100% - Estimate`=numeric(), `Below 100% - MoE`=numeric(),
+                          `Below 150% - Estimate`=numeric(), `Below 150% - MoE`=numeric(),
+                          `Below 200% - Estimate`=numeric(), `Below 200% - MoE`=numeric())
+
+for (c in counties) {
   
+  temp <- data.table(`Geography` = c, 
+                            `Total Population - Estimate` = unlist(results[['totals']][[c]][['poverty']][['total-population']]),
+                            `Total Population - MoE` = unlist(results[['moe']][[c]][['poverty']][['total-population']]),
+                            `Below 100% - Estimate` = unlist(results[['totals']][[c]][['poverty']][['under-100%']]),
+                            `Below 100% - MoE` = unlist(results[['moe']][[c]][['poverty']][['under-100%']]),
+                            `Below 150% - Estimate` = unlist(results[['totals']][[c]][['poverty']][['under-150%']]),
+                            `Below 150% - MoE` = unlist(results[['moe']][[c]][['poverty']][['under-150%']]),
+                            `Below 200% - Estimate` = unlist(results[['totals']][[c]][['poverty']][['under-200%']]),
+                            `Below 200% - MoE` = unlist(results[['moe']][[c]][['poverty']][['under-200%']]))
+  
+  tbl.poverty <- rbind(tbl.poverty, temp)
+  
+} 
+
+
+# Clean up workspace
+rm(temp, region.tot, region.moe, region)
 ```
 
 \newpage
@@ -150,7 +237,21 @@ Table 10. Language Spoken at Home by Ability to Speak English: <b>`r yr-4`</b>-<
 Table 11. Common Languages Other Than English Spoken in the Central Puget Sound: <b>`r yr`</b>  
 
 ## Observations
-Tables 1 and 2 provide essential statistics on the region’s minority and low-income populations. Minorities, or non-White persons including White persons of Hispanic/Latino origin, comprised xx percent of the region’s total population in `r yr`. Minorities comprised the largest share of the population in King County <b>(`r round(results[['data.shares']][['King County']][['non-white']]*100,1)` percent)</b>, followed by Pierce County <b>(`r round(results[['data.shares']][['Pierce County']][['non-white']]*100,1)` percent)</b>, Snohomish County <b>(`r round(results[['data.shares']][['Snohomish County']][['non-white']]*100,1)` percent)</b>, and Kitsap County <b>(`r round(results[['data.shares']][['Kitsap County']][['non-white']]*100,1)` percent)</b>. All groups except White alone (down xx percent) and American Indian and Alaska Native (no change) increased their share of the population since 2016, with percent of total minority growing by xx percent in two years.
+Tables 1 and 2 provide essential statistics on the region’s minority and low-income populations. Minorities, or non-White persons including White persons of Hispanic/Latino origin, comprised **`r round(results[['shares']][['Region']][['race']][['non-white']]*100,1)` percent** of the region’s total population in `r yr`. Minorities comprised the largest share of the population in King County **(`r round(results[['shares']][['King County']][['race']][['non-white']]*100,1)` percent)**, followed by Pierce County **(`r round(results[['shares']][['Pierce County']][['race']][['non-white']]*100,1)` percent)**, Snohomish County **(`r round(results[['shares']][['Snohomish County']][['race']][['non-white']]*100,1)` percent)**, and Kitsap County **(`r round(results[['shares']][['Kitsap County']][['race']][['non-white']]*100,1)` percent)**. All groups except White alone **(down xx percent)** and American Indian and Alaska Native **(no change)** increased their share of the population since 2016, with percent of total minority growing by **xx percent** in two years.
+
+In `r yr`, the regionwide poverty rate was **`r round(results[['shares']][['Region']][['poverty']][['under-100%']]*100,1)` percent**. The poverty rate was highest in Pierce County **(`r round(results[['shares']][['Pierce County']][['poverty']][['under-100%']]*100,1)` percent)** and lowest in Snohomish County **(`r round(results[['shares']][['Snohomish County']][['poverty']][['under-100%']]*100,1)` percent)**. Table 2 also reports statistics for the percentage of the region’s population below 150 percent and 200 percent of the federal poverty level in `r yr`. These statistics indicate that there are substantial numbers of families and individuals in the region whose incomes are above the federal poverty level, but within a range that may still be considered lower income, particularly when taking into account the cost of living in the central Puget Sound region. Federal poverty thresholds are not adjusted for regional, state, and local variations in the cost of living, which is higher in the central Puget Sound region relative to most other areas of the United States on average because of higher local housing and transportation costs.  
+
+Tables 3 and 4 illustrate the relationship between minority and low-income populations.Poverty rates are higher, and median household incomes generally lower, for minority populations compared to the White population or total population overall. While the poverty rate for the Asian population is very similar to that of the total population, for other racial and ethnic groups it can be more than double. (The total population for whom poverty is determined and the poverty rate are different between this table and Table 2 because the data are drawn from different ACS series: 5-year versus 1-year, respectively. See Appendix B. Data Notes for more details.)  
+
+Table 4 shows the median household income by race and ethnicity as well as the ratio of those median incomes to that of all households. Asians have the highest median income for the region as well as in King County, but there is wide variation by both county and race/ethnicity. Most groups saw significant increases in median income between **xx and xx**. The largest increases in income are found among American Indians **(xx percent)**, Some Other Race **(xx percent)** and those of Hispanic ethnicity **(xx percent)**.  
+
+Tables 5-7 present demographic statistics, including poverty rates, for the region’s elderly, youth, and disabled populations. The disabled population is shown to have significantly higher rates of poverty than the total population overall, whereas poverty rates for the elderly population are significantly lower. The rate for children under 18 is less than that for those with disabilities, generally about 2 percentage points higher than for the general population, although the difference in Pierce County is twice that in the other counties and of the region overall.  
+
+Table 8 compares vehicle non-availability among household types. Households with a minority householder, low-income households, households with an elderly householder, and households with one or more disabled persons are more likely to have no vehicle available than the average household in the region. These data indicate that the transportation, and especially public transit, needs of such households are significantly different from the average household.
+
+Tables 9 and 10 present statistics on persons with limited English proficiency and common languages other than English spoken in the central Puget Sound region. This information is intended to support the development of the public outreach and involvement component of PSRC’s environmental justice program.  
+
+Finally, Table 11 lists the most commonly spoken languages at home other than English, for the region and for each county.  
 
 [^1]: Title VI of the Civil Rights Act of 1964 states that “no person in the United States shall, on the ground of race, color, or national origin, be excluded from participation in, be denied the benefits of, or be subjected to discrimination under any program or activity receiving Federal financial assistance.” 
 [^2]: Executive Order 12898, Federal Actions to Address Environmental Justice in Minority Populations and Low-Income Populations, February 1994.
