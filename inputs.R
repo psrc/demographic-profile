@@ -50,6 +50,11 @@ race.categories <- c("Geography","Estimate Total",
                      "Hispanic or Latino (of any race)",
                      "Estimate Total Minority", "MoE Total Minority")
 
+poverty.ratio.categories <- c("Geography","Estimate Total",
+                              "Estimate under 100%", "MoE under 100%",
+                              "Estimate under 150%", "MoE under 150%",
+                              "Estimate under 200%", "MoE under 200%")
+
 race.hispanic.origin.categories <- list ("total-population" = ":",
                                          "white" = ": Not Hispanic or Latino: White alone",
                                          "black" = ": Not Hispanic or Latino: Black or African American alone" ,
@@ -60,13 +65,7 @@ race.hispanic.origin.categories <- list ("total-population" = ":",
                                          "two-or-more" = ": Not Hispanic or Latino: Two or more races:" ,
                                          "hispanice-latinx" = ": Hispanic or Latino:")
 
-poverty.ratio.categories <- list ("total-population" = ":",
-                                         "under-50%" = ": Under .50",
-                                         "50%-100%" = ": .50 to .99" ,
-                                         "100%-125%" = ": 1.00 to 1.24",
-                                         "125%-150%" = ": 1.25 to 1.49",
-                                         "150%-185%" = ": 1.50 to 1.84",
-                                         "185%-200%" = ": 1.85 to 1.99",
-                                         "over-200%" = ": 2.00 and over")
+
 
 tbl1.colnames <- c("Estimate", "Estimate", "MoE","Estimate", "MoE","Estimate", "MoE","Estimate", "MoE","Estimate", "MoE","Estimate","Estimate", "MoE")
+tbl2.colnames <- c("Estimate", "Estimate", "MoE","Estimate", "MoE","Estimate", "MoE")

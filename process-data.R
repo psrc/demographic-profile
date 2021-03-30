@@ -80,8 +80,73 @@ for (analysis.yr in yr) {
     footnote(general = paste0("Source: ", c.yr, " American Community Survey 1-Year Estimates"),
              symbol = c("The estimate is controlled. A statistical test for sampling variability is not applicable.")) %>%
     landscape() 
-    #%>% column_spec(column=2:15, width="5em")
+    
   
 } #end of year loop
 
 rm(pop.by.race, pop.by.race.hispanic.origin, temp, temp2)
+
+
+# Create Table 2 ----------------------------------------------------------
+
+for (analysis.yr in yr) {
+  c.yr <- as.character(analysis.yr)
+
+  # Load table with ratio of income to poverty level
+  pop.by.poverty <- results[[c.yr]][["raw-data-tables"]][["acs/acs1"]][["C17002"]]
+
+  # Create columns for 100%, 150% and 200% of poverty levels
+  pop.by.poverty["Estimate under 100%"] <- pop.by.poverty["Estimate Total Under .50"] + pop.by.poverty["Estimate Total .50 to .99"]
+  pop.by.poverty["MoE under 100%"] <- sqrt((pop.by.poverty["MoE Total Under .50"])^2 + (pop.by.poverty["MoE Total .50 to .99"])^2)
+
+  pop.by.poverty["Estimate under 150%"] <- pop.by.poverty["Estimate Total Under .50"] + pop.by.poverty["Estimate Total .50 to .99"] +
+                                           pop.by.poverty["Estimate Total 1.00 to 1.24"] + pop.by.poverty["Estimate Total 1.25 to 1.49"]
+
+  pop.by.poverty["MoE under 150%"] <- sqrt((pop.by.poverty["MoE Total Under .50"])^2 + (pop.by.poverty["MoE Total .50 to .99"])^2 +
+                                      (pop.by.poverty["MoE Total 1.00 to 1.24"])^2 + (pop.by.poverty["MoE Total 1.25 to 1.49"])^2)
+
+  pop.by.poverty["Estimate under 200%"] <- pop.by.poverty["Estimate Total Under .50"] + pop.by.poverty["Estimate Total .50 to .99"] +
+                                           pop.by.poverty["Estimate Total 1.00 to 1.24"] + pop.by.poverty["Estimate Total 1.25 to 1.49"] +
+                                           pop.by.poverty["Estimate Total 1.50 to 1.84"] + pop.by.poverty["Estimate Total 1.85 to 1.99"]
+
+  pop.by.poverty["MoE under 200%"] <- sqrt((pop.by.poverty["MoE Total Under .50"])^2 + (pop.by.poverty["MoE Total .50 to .99"])^2 +
+                                      (pop.by.poverty["MoE Total 1.00 to 1.24"])^2 + (pop.by.poverty["MoE Total 1.25 to 1.49"])^2 +
+                                      (pop.by.poverty["MoE Total 1.50 to 1.84"])^2 + (pop.by.poverty["MoE Total 1.85 to 1.99"])^2)
+
+  # Final table with values
+  results[[c.yr]][["processed-data-tables"]][["table.2.pop.by.poverty.ratio"]] <- pop.by.poverty[,poverty.ratio.categories] %>% arrange(Geography)
+
+  # Create Formatted Table for document
+  temp <- results[[c.yr]][["processed-data-tables"]][["table.2.pop.by.poverty.ratio"]] %>%
+    mutate(across(is.numeric, label_comma(accuracy = 1)))
+
+  # Add in Rows for Shares
+  for (c in counties) {
+  
+    temp2 <- results[[c.yr]][["processed-data-tables"]][["table.2.pop.by.poverty.ratio"]] %>% 
+      filter(Geography==c) %>%
+      select(-Geography) %>%
+      mutate(across(everything()), . / `Estimate Total`) %>%
+      mutate(across(everything(), label_percent(accuracy = 0.1))) %>%
+      add_column(Geography=c, .before = "Estimate Total")
+  
+    temp <- bind_rows(temp, temp2)  
+  }
+  
+  temp <- temp %>% setNames(c("Geography",tbl2.colnames))
+  
+  results[[c.yr]][["formatted-data-tables"]][["table.2.pop.by.poverty.ratio"]] <- kbl(temp, caption = paste0("Poverty Statistics: ", c.yr), booktabs = T) %>%
+    kable_styling(latex_options = "striped") %>%
+    kable_styling(latex_options = "scale_down") %>%
+    add_header_above(c(" " = 1, "Population for whom\n poverty status is\n determined"=1, "Below 100%\n of poverty level" = 2, "Below 150%\n of poverty level" = 2, "Below 200%\n of poverty level" = 2)) %>%
+    add_header_above(c(" " = 2, "Income" = 6)) %>%
+    row_spec(1:1, bold = T) %>%
+    row_spec(6:6, bold = T) %>%
+    pack_rows(index=c("Totals" = 5, "Shares" = 5)) %>%
+    footnote(general = paste0("Source: ", c.yr, " American Community Survey 1-Year Estimates")) %>%
+    landscape() 
+
+} #end of year loop
+
+rm(pop.by.poverty, temp, temp2)
+
