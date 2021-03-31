@@ -35,8 +35,9 @@ census.tables <- list("B01001.1yr" = list("B01001","Sex by Age","acs/acs1"),
                       "B17001E.5yr" = list("B17001E","Poverty Status in the Past 12 Months by Sex by Age (Native Hawaiian and Other Pacific Islander Alone)", "acs/acs5"),
                       "B17001F.5yr" = list("B17001F","Poverty Status in the Past 12 Months by Sex by Age (Some Other Race Alone)", "acs/acs5"),
                       "B17001G.5yr" = list("B17001G","Poverty Status in the Past 12 Months by Sex by Age (Two or More Races Alone)", "acs/acs5"),
-                      "B17001H.5yr" = list("B17001H","Poverty Status in the Past 12 Months by Sex by Age (Hispanic or Latino)", "acs/acs5"),
-                      "B17001I.5yr" = list("B17001I","Poverty Status in the Past 12 Months by Sex by Age (White Alone, Not Hispanic or Latino)", "acs/acs5")
+                      "B17001H.5yr" = list("B17001H","Poverty Status in the Past 12 Months by Sex by Age (White Alone, Not Hispanic or Latino)", "acs/acs5"),
+                      "B17001I.5yr" = list("B17001I","Poverty Status in the Past 12 Months by Sex by Age (Hispanic or Latino)", "acs/acs5")
+                      
 )
 
 counties <- list("Central Puget Sound", "King County", "Kitsap County", "Pierce County", "Snohomish County")
@@ -55,17 +56,16 @@ poverty.ratio.categories <- c("Geography","Estimate Total",
                               "Estimate under 150%", "MoE under 150%",
                               "Estimate under 200%", "MoE under 200%")
 
-race.hispanic.origin.categories <- list ("total-population" = ":",
-                                         "white" = ": Not Hispanic or Latino: White alone",
-                                         "black" = ": Not Hispanic or Latino: Black or African American alone" ,
-                                         "native-american" = ": Not Hispanic or Latino: American Indian and Alaska Native alone",
-                                         "asian" = ": Not Hispanic or Latino: Asian alone",
-                                         "pacific-islander" = ": Not Hispanic or Latino: Native Hawaiian and Other Pacific Islander alone",
-                                         "other" = ": Not Hispanic or Latino: Some other race alone",
-                                         "two-or-more" = ": Not Hispanic or Latino: Two or more races:" ,
-                                         "hispanice-latinx" = ": Hispanic or Latino:")
-
-
+poverty.race.tables <- list("B17001A" = "White",
+                            "B17001B" = "Black or African American",
+                            "B17001C" = "American Indian/Alaska Native",
+                            "B17001D" = "Asian",
+                            "B17001E" = "Native Hawaiian/Other Pacific Islander",
+                            "B17001F" = "Some other race",
+                            "B17001G" = "Two or more races",
+                            "B17001H" = "White, not Hispanic or Latino",
+                            "B17001I" = "Hispanic or Latino")
 
 tbl1.colnames <- c("Estimate", "Estimate", "MoE","Estimate", "MoE","Estimate", "MoE","Estimate", "MoE","Estimate", "MoE","Estimate","Estimate", "MoE")
 tbl2.colnames <- c("Estimate", "Estimate", "MoE","Estimate", "MoE","Estimate", "MoE")
+tbl3.colnames <- c("Estimate", "MoE","Estimate", "MoE","Estimate", "MoE","Estimate", "MoE","Estimate", "MoE")

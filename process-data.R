@@ -69,7 +69,7 @@ for (analysis.yr in yr) {
   
   temp <- temp %>% setNames(c("Geography",tbl1.colnames))
   
-  results[[c.yr]][["formatted-data-tables"]][["table.1.pop.by.race"]] <- kbl(temp, caption = paste0("Population and Race by Hispanic/Latino Origin: ", c.yr), booktabs = T) %>%
+  results[[c.yr]][["formatted-data-tables"]][["table.1.pop.by.race"]] <- kbl(temp, caption = paste0("Population and Race by Hispanic/Latino Origin: ", c.yr), booktabs = T, align = "lcccccccccccccc") %>%
     kable_styling(latex_options = "striped") %>%
     kable_styling(latex_options = "scale_down") %>%
     add_header_above(c(" " = 1, "Total\n Population*"=1, "White" = 2,"Black or African\n American" = 2, "American Indian\n and Alaska Native" = 2, "Asian and Pacific\n Islander" = 2, "Other race or two\n or more races" = 2, "Hispanic\n or Latino\n (of any\n race)*" = 1, "Total Minority\n (non-White\n including\n White/Hispanic"=2)) %>%
@@ -85,7 +85,6 @@ for (analysis.yr in yr) {
 } #end of year loop
 
 rm(pop.by.race, pop.by.race.hispanic.origin, temp, temp2)
-
 
 # Create Table 2 ----------------------------------------------------------
 
@@ -135,7 +134,7 @@ for (analysis.yr in yr) {
   
   temp <- temp %>% setNames(c("Geography",tbl2.colnames))
   
-  results[[c.yr]][["formatted-data-tables"]][["table.2.pop.by.poverty.ratio"]] <- kbl(temp, caption = paste0("Poverty Statistics: ", c.yr), booktabs = T) %>%
+  results[[c.yr]][["formatted-data-tables"]][["table.2.pop.by.poverty.ratio"]] <- kbl(temp, caption = paste0("Poverty Statistics: ", c.yr), booktabs = T, align = "lccccccc") %>%
     kable_styling(latex_options = "striped") %>%
     kable_styling(latex_options = "scale_down") %>%
     add_header_above(c(" " = 1, "Population for whom\n poverty status is\n determined"=1, "Below 100%\n of poverty level" = 2, "Below 150%\n of poverty level" = 2, "Below 200%\n of poverty level" = 2)) %>%
@@ -150,3 +149,91 @@ for (analysis.yr in yr) {
 
 rm(pop.by.poverty, temp, temp2)
 
+# Create Table 3 ----------------------------------------------------------
+for (analysis.yr in yr) {
+  c.yr <- as.character(analysis.yr)
+
+  # Load Total population in poverty from the base table
+  temp <- results[[c.yr]][["raw-data-tables"]][["acs/acs5"]][["B17001"]] %>%
+    select(Geography , `Estimate Total` , `Estimate Total Income in the past 12 months below poverty level`, `MoE Total`, `MoE Total Income in the past 12 months below poverty level`) %>%
+    setNames(c("Geography","Total-Estimate","Estimate-in-Poverty","Total-MoE", "MoE-in-Poverty")) %>%
+    mutate(`Share-Estimate-Poverty` = `Estimate-in-Poverty` / `Total-Estimate`) %>%
+    mutate(`Share-MoE-Poverty` = `MoE-in-Poverty` / `Total-Estimate`) %>%
+    arrange(Geography) %>%
+    mutate(Race="All Persons")
+
+  # Read data from each table of poverty statistics by race and append to the total population in poverty table
+  for (tbl in names(poverty.race.tables)) {
+
+    temp2 <- results[[c.yr]][["raw-data-tables"]][["acs/acs5"]][[tbl]] %>%
+      select(Geography , `Estimate Total` , `Estimate Total Income in the past 12 months below poverty level`, `MoE Total`, `MoE Total Income in the past 12 months below poverty level`) %>%
+      setNames(c("Geography","Total-Estimate","Estimate-in-Poverty","Total-MoE", "MoE-in-Poverty")) %>%
+      mutate(`Share-Estimate-Poverty` = `Estimate-in-Poverty` / `Total-Estimate`) %>%
+      mutate(`Share-MoE-Poverty` = `MoE-in-Poverty` / `Total-Estimate`) %>%
+      arrange(Geography) %>%
+      mutate(Race=poverty.race.tables[[tbl]])
+  
+    temp <- bind_rows(temp, temp2)
+  }
+
+  # Calculate Total Non-White Minority including White Hispanic
+  for (c in counties) {
+    tot <- temp %>%
+      filter(Race %in% c("All Persons","White, not Hispanic or Latino"), Geography == c) %>%
+      select(!contains("MoE")) %>%
+      mutate(across(is.numeric, ~.-last(.))) %>%
+      mutate(`Share-Estimate-Poverty` = `Estimate-in-Poverty` / `Total-Estimate`) %>%
+      filter(Race == "All Persons") 
+    
+    moe <- suppressWarnings(temp %>%
+      filter(Race %in% c("All Persons","White, not Hispanic or Latino"), Geography == c) %>%
+      select(contains("MoE")) %>%
+      summarise_all(moe_sum) %>%
+      mutate(Geography=c))
+  
+    tot <- inner_join(tot, moe, by="Geography") %>%
+      mutate(Race = "Total minority (non-White including White Hispanic)") %>%
+      mutate(`Share-Estimate-Poverty` = `Estimate-in-Poverty` / `Total-Estimate`) %>% 
+      mutate(`Share-MoE-Poverty` = `MoE-in-Poverty` / `Total-Estimate`)
+  
+    temp <- bind_rows(temp, tot)
+
+  }
+
+  # Convert from long to wide format
+  tbl.values <- pivot_wider(temp, id_cols=Race, names_from = Geography, values_from = c("Total-Estimate","Estimate-in-Poverty","Total-MoE", "MoE-in-Poverty", "Share-Estimate-Poverty", "Share-MoE-Poverty"))  
+
+  poverty.race.total.col <- c("Race","Total-Estimate_Central Puget Sound", "Total-MoE_Central Puget Sound",
+                            "Total-Estimate_King County", "Total-MoE_King County",
+                            "Total-Estimate_Kitsap County", "Total-MoE_Kitsap County",
+                            "Total-Estimate_Pierce County", "Total-MoE_Pierce County",
+                            "Total-Estimate_Snohomish County", "Total-MoE_Snohomish County")
+
+  poverty.race.share.col <- c("Race","Share-Estimate-Poverty_Central Puget Sound", "Share-MoE-Poverty_Central Puget Sound",
+                            "Share-Estimate-Poverty_King County", "Share-MoE-Poverty_King County",
+                            "Share-Estimate-Poverty_Kitsap County", "Share-MoE-Poverty_Kitsap County",
+                            "Share-Estimate-Poverty_Pierce County", "Share-MoE-Poverty_Pierce County",
+                            "Share-Estimate-Poverty_Snohomish County", "Share-MoE-Poverty_Snohomish County")
+
+  pov.pop.tot <- tbl.values[,poverty.race.total.col] %>% filter(Race=="All Persons") %>% mutate(Race="Population for whom poverty status is determined") %>% mutate(across(is.numeric, label_comma(accuracy = 1)))
+  pov.pop.shr <- tbl.values[,poverty.race.share.col] %>% mutate(across(is.numeric, label_percent(accuracy = 0.1))) %>% setNames(poverty.race.total.col)
+
+  # Final table with values
+  results[[c.yr]][["processed-data-tables"]][["table.3.poverty.by.race"]] <- rbind(pov.pop.tot,pov.pop.shr)
+  
+  temp <- results[[c.yr]][["processed-data-tables"]][["table.3.poverty.by.race"]] %>% setNames(c("",tbl3.colnames))
+
+  results[[c.yr]][["formatted-data-tables"]][["table.3.poverty.by.race"]] <- kbl(temp, caption = paste0("Poverty Statistics by Race and Hispanic/Latino Origin: ", analysis.yr-4,"-",analysis.yr), booktabs = T, align='lcccccccccc') %>%
+    kable_styling(latex_options = "striped") %>%
+    kable_styling(latex_options = "scale_down") %>%
+    add_header_above(c(" " = 1, "Central\n Puget Sound"=2, "King\n County" = 2, "Kitsap\n County" = 2, "Pierce\n County" = 2, "Snohomish\n County" = 2)) %>%
+    row_spec(1:1, bold = T) %>%
+    add_indent(c(3:9), level_of_indent = 4) %>%
+    add_indent(c(2,10:12), level_of_indent = 1) %>%
+    footnote(general = paste0("Source: ", analysis.yr-4,"-",analysis.yr, " American Community Survey 5-Year Estimates")) %>%
+    landscape() 
+
+} #end of year loop
+
+rm(pov.pop.tot, pov.pop.shr, tbl.values, temp, tot, moe, temp2)  
+  
