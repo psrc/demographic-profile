@@ -162,6 +162,12 @@ tbl
 tbl <- results[[as.character(data.yr)]][["formatted-data-tables"]][["table.6.poverty.under.18"]]
 tbl
 ```
+\newpage
+``` {r echo=FALSE}
+tbl <- results[[as.character(data.yr)]][["formatted-data-tables"]][["table.7.poverty.disability"]]
+tbl
+```
+
 [^1]: Title VI of the Civil Rights Act of 1964 states that “no person in the United States shall, on the ground of race, color, or national origin, be excluded from participation in, be denied the benefits of, or be subjected to discrimination under any program or activity receiving Federal financial assistance.” 
 [^2]: Executive Order 12898, Federal Actions to Address Environmental Justice in Minority Populations and Low-Income Populations, February 1994.
 [^3]: DOT Order to Address Environmental Justice in Minority Populations and Low-Income Populations, April 1997. 

@@ -67,7 +67,7 @@ for (analysis.yr in yr) {
     temp <- bind_rows(temp, temp2)  
   }
   
-  temp <- temp %>% setNames(c("Geography",tbl1.colnames))
+  temp <- temp %>% setNames(c("",tbl1.colnames))
   
   results[[c.yr]][["formatted-data-tables"]][["table.1.pop.by.race"]] <- kbl(temp, caption = paste0("Population and Race by Hispanic/Latino Origin: ", c.yr), booktabs = T, align = "lcccccccccccccc") %>%
     kable_styling(latex_options = "striped") %>%
@@ -132,7 +132,7 @@ for (analysis.yr in yr) {
     temp <- bind_rows(temp, temp2)  
   }
   
-  temp <- temp %>% setNames(c("Geography",tbl2.colnames))
+  temp <- temp %>% setNames(c("",tbl2.colnames))
   
   results[[c.yr]][["formatted-data-tables"]][["table.2.pop.by.poverty.ratio"]] <- kbl(temp, caption = paste0("Poverty Statistics: ", c.yr), booktabs = T, align = "lccccccc") %>%
     kable_styling(latex_options = "striped") %>%
@@ -414,6 +414,63 @@ for (analysis.yr in yr) {
     footnote(general = paste0("Source: ", c.yr, " American Community Survey 1-Year Estimates"), general_title = " ") %>%
     landscape() 
 }  
+
+rm(temp)
+
+# Create Table 6 ----------------------------------------------------------
+for (analysis.yr in yr) {
+  c.yr <- as.character(analysis.yr)
+  
+  # Load Total population in poverty from the base table
+  temp <- results[[c.yr]][["raw-data-tables"]][["acs/acs1"]][["B18130"]] %>%
+    
+    mutate(`Estimate-Disabled` = `Estimate Total Under 5 years With a disability`  + `Estimate Total 5 to 17 years With a disability`+
+             `Estimate Total 18 to 34 years With a disability` + `Estimate Total 35 to 64 years With a disability` +
+             `Estimate Total 65 to 74 years With a disability` + `Estimate Total 75 years and over With a disability`) %>%
+    
+    mutate(`MoE-Disabled` = sqrt((`MoE Total Under 5 years With a disability`)^2  + (`MoE Total 5 to 17 years With a disability`)^2+
+             (`MoE Total 18 to 34 years With a disability`)^2 + (`MoE Total 35 to 64 years With a disability`)^2 +
+             (`MoE Total 65 to 74 years With a disability`)^2 + (`MoE Total 75 years and over With a disability`)^2)) %>%
+
+    mutate(`Estimate-Disabled-Poverty` = `Estimate Total Under 5 years With a disability Income in the past 12-months below poverty level`  + 
+             `Estimate Total 5 to 17 years With a disability Income in the past 12-months below poverty level`+
+             `Estimate Total 18 to 34 years With a disability Income in the past 12-months below poverty level` + 
+             `Estimate Total 35 to 64 years With a disability Income in the past 12-months below poverty level` +
+             `Estimate Total 65 to 74 years With a disability Income in the past 12-months below poverty level` 
+           + `Estimate Total 75 years and over With a disability Income in the past 12-months below poverty level`) %>%
+    
+    mutate(`MoE-Disabled-Poverty` = sqrt((`MoE Total Under 5 years With a disability Income in the past 12-months below poverty level`)^2  + 
+                                          (`MoE Total 5 to 17 years With a disability Income in the past 12-months below poverty level`)^2+
+                                          (`MoE Total 18 to 34 years With a disability Income in the past 12-months below poverty level`)^2 + 
+                                          (`MoE Total 35 to 64 years With a disability Income in the past 12-months below poverty level`)^2 +
+                                          (`MoE Total 65 to 74 years With a disability Income in the past 12-months below poverty level`)^2 + 
+                                          (`MoE Total 75 years and over With a disability Income in the past 12-months below poverty level`)^2)) %>%
+    
+    mutate(`Estimate-Poverty-Rate` = `Estimate-Disabled-Poverty` / `Estimate-Disabled`, `MoE-Poverty-Rate` = `MoE-Disabled-Poverty` / `Estimate-Disabled`) %>%
+    
+    arrange(Geography) %>%
+    
+    select(Geography, `Estimate Total`, `MoE Total`, `Estimate-Disabled`, `MoE-Disabled`, `Estimate-Disabled-Poverty`, `MoE-Disabled-Poverty`, `Estimate-Poverty-Rate`, `MoE-Poverty-Rate`) %>%
+    
+    mutate(`Estimate-Poverty-Rate` = percent(`Estimate-Poverty-Rate`, accuracy = 0.1), `MoE-Poverty-Rate` = percent(`MoE-Poverty-Rate`, accuracy = 0.1)) %>%
+    
+    mutate(across(where(is.numeric), label_comma(accuracy = 1)))
+
+  # Final table with values
+  results[[c.yr]][["processed-data-tables"]][["table.7.poverty.disability"]] <- temp
+  
+  temp <- results[[c.yr]][["processed-data-tables"]][["table.7.poverty.disability"]] %>% setNames(c("",tbl7.colnames))
+  
+  results[[c.yr]][["formatted-data-tables"]][["table.7.poverty.disability"]] <- kbl(temp, caption = paste0("Poverty Rate for Persons with a Disability: ", c.yr), booktabs = T, align = "lcccccccc") %>%
+    kable_styling(latex_options = "striped") %>%
+    kable_styling(latex_options = "scale_down") %>%
+    add_header_above(c(" " = 1, "Civilian\n noninstitutionalized\n population for whom\n poverty status is\n determined"=2, "All Persons" = 2, "Income in past 12\n months below\n poverty level" = 2, "Poverty rate" = 2)) %>%
+    add_header_above(c(" " = 3, "With one or more disabilities" = 6)) %>%
+    row_spec(1:1, bold = T) %>%
+    footnote(general = paste0("Source: ", c.yr, " American Community Survey 1-Year Estimates"), general_title = " ") %>%
+    landscape() 
+  
+}    
 
 rm(temp)
 
