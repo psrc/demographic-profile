@@ -76,7 +76,18 @@ hhincome.race.tables <- list("B19013A" = "White",
                             "B19013H" = "White, not Hispanic or Latino",
                             "B19013I" = "Hispanic or Latino")
 
+over65.poverty.categories <- c("Geography","Estimate Total", "MoE Total",
+                               "Estimate Total Income in the past 12 months below poverty level Female 65 years and over", 
+                               "Estimate Total Income in the past 12 months below poverty level Male 65 years and over",
+                               "Estimate Total Income in the past 12 months at or above poverty level Female 65 years and over",
+                               "Estimate Total Income in the past 12 months at or above poverty level Male 65 years and over",
+                               "MoE Total Income in the past 12 months below poverty level Female 65 years and over", 
+                               "MoE Total Income in the past 12 months below poverty level Male 65 years and over",
+                               "MoE Total Income in the past 12 months at or above poverty level Female 65 years and over",
+                               "MoE Total Income in the past 12 months at or above poverty level Male 65 years and over" )
+
 tbl1.colnames <- c("Estimate", "Estimate", "MoE","Estimate", "MoE","Estimate", "MoE","Estimate", "MoE","Estimate", "MoE","Estimate","Estimate", "MoE")
 tbl2.colnames <- c("Estimate", "Estimate", "MoE","Estimate", "MoE","Estimate", "MoE")
 tbl3.colnames <- c("Estimate", "MoE","Estimate", "MoE","Estimate", "MoE","Estimate", "MoE","Estimate", "MoE")
 tbl4.colnames <- c("Estimate", "MoE","Estimate", "MoE","Estimate", "MoE","Estimate", "MoE")
+tbl5.colnames <- c("Estimate", "MoE","Estimate", "MoE","Estimate", "MoE","Pct", "MoE")

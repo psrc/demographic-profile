@@ -78,7 +78,7 @@ for (analysis.yr in yr) {
     row_spec(6:6, bold = T) %>%
     pack_rows(index=c("Totals" = 5, "Shares" = 5)) %>%
     footnote(general = paste0("Source: ", c.yr, " American Community Survey 1-Year Estimates"),
-             symbol = c("The estimate is controlled. A statistical test for sampling variability is not applicable.")) %>%
+             symbol = c("The estimate is controlled. A statistical test for sampling variability is not applicable."), general_title = " ") %>%
     landscape() 
     
   
@@ -142,7 +142,7 @@ for (analysis.yr in yr) {
     row_spec(1:1, bold = T) %>%
     row_spec(6:6, bold = T) %>%
     pack_rows(index=c("Totals" = 5, "Shares" = 5)) %>%
-    footnote(general = paste0("Source: ", c.yr, " American Community Survey 1-Year Estimates")) %>%
+    footnote(general = paste0("Source: ", c.yr, " American Community Survey 1-Year Estimates"), general_title = " ") %>%
     landscape() 
 
 } #end of year loop
@@ -230,7 +230,7 @@ for (analysis.yr in yr) {
     row_spec(1:1, bold = T) %>%
     add_indent(c(3:9), level_of_indent = 4) %>%
     add_indent(c(2,10:12), level_of_indent = 1) %>%
-    footnote(general = paste0("Source: ", analysis.yr-4,"-",analysis.yr, " American Community Survey 5-Year Estimates")) %>%
+    footnote(general = paste0("Source: ", analysis.yr-4,"-",analysis.yr, " American Community Survey 5-Year Estimates"), general_title = " ") %>%
     landscape() 
 
 } #end of year loop
@@ -309,9 +309,58 @@ for (analysis.yr in yr) {
     add_indent(c(2:8, 12:18), level_of_indent = 4) %>%
     add_indent(c(9:10, 19:20), level_of_indent = 1) %>%
     row_spec(11:11, bold = T) %>%
-    footnote(general = paste0("Source: ", analysis.yr, " American Community Survey 1-Year Estimates")) %>%
+    footnote(general = paste0("Source: ", analysis.yr, " American Community Survey 1-Year Estimates"), general_title = " ") %>%
     landscape()   
 }
   
 rm(hhincome.shr, hhincome.tot, tbl.values, temp, temp2)
 
+# Create Table 5 ----------------------------------------------------------
+for (analysis.yr in yr) {
+  c.yr <- as.character(analysis.yr)
+  
+  # Load Total population in poverty from the base table
+  temp <- results[[c.yr]][["raw-data-tables"]][["acs/acs1"]][["C17001"]] %>%
+    arrange(Geography) %>%
+    select(all_of(over65.poverty.categories)) %>%
+    
+    mutate(`Estimate-Total-Over65` = `Estimate Total Income in the past 12 months at or above poverty level Female 65 years and over` + 
+             `Estimate Total Income in the past 12 months at or above poverty level Male 65 years and over`+
+             `Estimate Total Income in the past 12 months below poverty level Female 65 years and over`+
+             `Estimate Total Income in the past 12 months below poverty level Male 65 years and over`) %>%
+    
+    mutate(`MoE-Total-Over65` = sqrt((`MoE Total Income in the past 12 months below poverty level Female 65 years and over`)^2 + 
+                                    (`MoE Total Income in the past 12 months below poverty level Male 65 years and over`)^2 +
+                                    (`MoE Total Income in the past 12 months at or above poverty level Female 65 years and over`)^2 +
+                                    (`MoE Total Income in the past 12 months at or above poverty level Male 65 years and over`)^2)) %>%
+    
+    mutate(`Estimate-Below-Poverty` = `Estimate Total Income in the past 12 months below poverty level Female 65 years and over` + 
+             `Estimate Total Income in the past 12 months below poverty level Male 65 years and over`) %>%
+
+    mutate(`MoE-Below-Poverty` = sqrt((`MoE Total Income in the past 12 months below poverty level Female 65 years and over`)^2 + 
+                                        (`MoE Total Income in the past 12 months below poverty level Male 65 years and over`)^2)) %>%
+    
+    mutate(`Estimate-Poverty-Rate` = `Estimate-Below-Poverty` / `Estimate-Total-Over65`, `MoE-Poverty-Rate` = `MoE-Below-Poverty` / `Estimate-Total-Over65`) %>%
+    
+    select(Geography, `Estimate Total`, `MoE Total`, `Estimate-Total-Over65`, `MoE-Total-Over65`, `Estimate-Below-Poverty`, `MoE-Below-Poverty`, `Estimate-Poverty-Rate`, `MoE-Poverty-Rate`) %>%
+    
+    mutate(`Estimate-Poverty-Rate` = percent(`Estimate-Poverty-Rate`, accuracy = 0.1), `MoE-Poverty-Rate` = percent(`MoE-Poverty-Rate`, accuracy = 0.1)) %>%
+  
+    mutate(across(where(is.numeric), label_comma(accuracy = 1)))
+
+  # Final table with values
+  results[[c.yr]][["processed-data-tables"]][["table.5.poverty.over.65"]] <- temp
+  
+  temp <- results[[c.yr]][["processed-data-tables"]][["table.5.poverty.over.65"]] %>% setNames(c("",tbl5.colnames))
+  
+  results[[c.yr]][["formatted-data-tables"]][["table.5.poverty.over.65"]] <- kbl(temp, caption = paste0("Poverty Rate for the Population Age 65 and Over: ", c.yr), booktabs = T, align = "lcccccccc") %>%
+    kable_styling(latex_options = "striped") %>%
+    kable_styling(latex_options = "scale_down") %>%
+    add_header_above(c(" " = 1, "Population for whom\n poverty status is\n determined"=2, "All Persons" = 2, "Income in past 12\n months below\n poverty level" = 2, "Poverty rate" = 2)) %>%
+    add_header_above(c(" " = 3, "Age 65 years and over" = 6)) %>%
+    row_spec(1:1, bold = T) %>%
+    footnote(general = paste0("Source: ", c.yr, " American Community Survey 1-Year Estimates"), general_title = " ") %>%
+    landscape() 
+}  
+
+rm(temp)
