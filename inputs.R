@@ -86,8 +86,19 @@ over65.poverty.categories <- c("Geography","Estimate Total", "MoE Total",
                                "MoE Total Income in the past 12 months at or above poverty level Female 65 years and over",
                                "MoE Total Income in the past 12 months at or above poverty level Male 65 years and over" )
 
+under18.poverty.categories <- c("Geography","Estimate Total", "MoE Total",
+                               "Estimate Total Income in the past 12 months below poverty level Female Under 18 years", 
+                               "Estimate Total Income in the past 12 months below poverty level Male Under 18 years",
+                               "Estimate Total Income in the past 12 months at or above poverty level Female Under 18 years",
+                               "Estimate Total Income in the past 12 months at or above poverty level Male Under 18 years",
+                               "MoE Total Income in the past 12 months below poverty level Female Under 18 years", 
+                               "MoE Total Income in the past 12 months below poverty level Male Under 18 years",
+                               "MoE Total Income in the past 12 months at or above poverty level Female Under 18 years",
+                               "MoE Total Income in the past 12 months at or above poverty level Male Under 18 years" )
+
 tbl1.colnames <- c("Estimate", "Estimate", "MoE","Estimate", "MoE","Estimate", "MoE","Estimate", "MoE","Estimate", "MoE","Estimate","Estimate", "MoE")
 tbl2.colnames <- c("Estimate", "Estimate", "MoE","Estimate", "MoE","Estimate", "MoE")
 tbl3.colnames <- c("Estimate", "MoE","Estimate", "MoE","Estimate", "MoE","Estimate", "MoE","Estimate", "MoE")
 tbl4.colnames <- c("Estimate", "MoE","Estimate", "MoE","Estimate", "MoE","Estimate", "MoE")
 tbl5.colnames <- c("Estimate", "MoE","Estimate", "MoE","Estimate", "MoE","Pct", "MoE")
+tbl6.colnames <- c("Estimate", "MoE","Estimate", "MoE","Estimate", "MoE","Pct", "MoE")

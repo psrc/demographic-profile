@@ -364,3 +364,57 @@ for (analysis.yr in yr) {
 }  
 
 rm(temp)
+
+# Create Table 6 ----------------------------------------------------------
+for (analysis.yr in yr) {
+  c.yr <- as.character(analysis.yr)
+  
+  # Load Total population in poverty from the base table
+  temp <- results[[c.yr]][["raw-data-tables"]][["acs/acs1"]][["C17001"]] %>%
+    
+    arrange(Geography) %>%
+    
+    select(all_of(under18.poverty.categories)) %>%
+    
+    mutate(`Estimate-Total-Under18` = `Estimate Total Income in the past 12 months at or above poverty level Female Under 18 years` + 
+             `Estimate Total Income in the past 12 months at or above poverty level Male Under 18 years`+
+             `Estimate Total Income in the past 12 months below poverty level Female Under 18 years`+
+             `Estimate Total Income in the past 12 months below poverty level Male Under 18 years`) %>%
+    
+    mutate(`MoE-Total-Under18` = sqrt((`MoE Total Income in the past 12 months below poverty level Female Under 18 years`)^2 + 
+                                       (`MoE Total Income in the past 12 months below poverty level Male Under 18 years`)^2 +
+                                       (`MoE Total Income in the past 12 months at or above poverty level Female Under 18 years`)^2 +
+                                       (`MoE Total Income in the past 12 months at or above poverty level Male Under 18 years`)^2)) %>%
+    
+    mutate(`Estimate-Below-Poverty` = `Estimate Total Income in the past 12 months below poverty level Female Under 18 years` + 
+             `Estimate Total Income in the past 12 months below poverty level Male Under 18 years`) %>%
+    
+    mutate(`MoE-Below-Poverty` = sqrt((`MoE Total Income in the past 12 months below poverty level Female Under 18 years`)^2 + 
+                                        (`MoE Total Income in the past 12 months below poverty level Male Under 18 years`)^2)) %>%
+    
+    mutate(`Estimate-Poverty-Rate` = `Estimate-Below-Poverty` / `Estimate-Total-Under18`, `MoE-Poverty-Rate` = `MoE-Below-Poverty` / `Estimate-Total-Under18`) %>%
+    
+    select(Geography, `Estimate Total`, `MoE Total`, `Estimate-Total-Under18`, `MoE-Total-Under18`, `Estimate-Below-Poverty`, `MoE-Below-Poverty`, `Estimate-Poverty-Rate`, `MoE-Poverty-Rate`) %>%
+    
+    mutate(`Estimate-Poverty-Rate` = percent(`Estimate-Poverty-Rate`, accuracy = 0.1), `MoE-Poverty-Rate` = percent(`MoE-Poverty-Rate`, accuracy = 0.1)) %>%
+    
+    mutate(across(where(is.numeric), label_comma(accuracy = 1)))
+  
+  # Final table with values
+  results[[c.yr]][["processed-data-tables"]][["table.6.poverty.under.18"]] <- temp
+  
+  temp <- results[[c.yr]][["processed-data-tables"]][["table.6.poverty.under.18"]] %>% setNames(c("",tbl6.colnames))
+  
+  results[[c.yr]][["formatted-data-tables"]][["table.6.poverty.under.18"]] <- kbl(temp, caption = paste0("Poverty Rate for the Population Under 18: ", c.yr), booktabs = T, align = "lcccccccc") %>%
+    kable_styling(latex_options = "striped") %>%
+    kable_styling(latex_options = "scale_down") %>%
+    add_header_above(c(" " = 1, "Population for whom\n poverty status is\n determined"=2, "All Persons" = 2, "Income in past 12\n months below\n poverty level" = 2, "Poverty rate" = 2)) %>%
+    add_header_above(c(" " = 3, "Age under 18 years" = 6)) %>%
+    row_spec(1:1, bold = T) %>%
+    footnote(general = paste0("Source: ", c.yr, " American Community Survey 1-Year Estimates"), general_title = " ") %>%
+    landscape() 
+}  
+
+rm(temp)
+
+
