@@ -52,7 +52,7 @@ for (analysis.yr in yr) {
   
   # Create Formatted Table for document
   temp <- results[[c.yr]][["processed-data-tables"]][["table.1.pop.by.race"]] %>%
-    mutate(across(is.numeric, label_comma(accuracy = 1)))
+    mutate(across(where(is.numeric), label_comma(accuracy = 1)))
   
   # Add in Rows for Shares
   for (c in counties) {
@@ -117,7 +117,7 @@ for (analysis.yr in yr) {
 
   # Create Formatted Table for document
   temp <- results[[c.yr]][["processed-data-tables"]][["table.2.pop.by.poverty.ratio"]] %>%
-    mutate(across(is.numeric, label_comma(accuracy = 1)))
+    mutate(across(where(is.numeric), label_comma(accuracy = 1)))
 
   # Add in Rows for Shares
   for (c in counties) {
@@ -181,7 +181,7 @@ for (analysis.yr in yr) {
     tot <- temp %>%
       filter(Race %in% c("All Persons","White, not Hispanic or Latino"), Geography == c) %>%
       select(!contains("MoE")) %>%
-      mutate(across(is.numeric, ~.-last(.))) %>%
+      mutate(across(where(is.numeric), ~.-last(.))) %>%
       mutate(`Share-Estimate-Poverty` = `Estimate-in-Poverty` / `Total-Estimate`) %>%
       filter(Race == "All Persons") 
     
@@ -215,8 +215,8 @@ for (analysis.yr in yr) {
                             "Share-Estimate-Poverty_Pierce County", "Share-MoE-Poverty_Pierce County",
                             "Share-Estimate-Poverty_Snohomish County", "Share-MoE-Poverty_Snohomish County")
 
-  pov.pop.tot <- tbl.values[,poverty.race.total.col] %>% filter(Race=="All Persons") %>% mutate(Race="Population for whom poverty status is determined") %>% mutate(across(is.numeric, label_comma(accuracy = 1)))
-  pov.pop.shr <- tbl.values[,poverty.race.share.col] %>% mutate(across(is.numeric, label_percent(accuracy = 0.1))) %>% setNames(poverty.race.total.col)
+  pov.pop.tot <- tbl.values[,poverty.race.total.col] %>% filter(Race=="All Persons") %>% mutate(Race="Population for whom poverty status is determined") %>% mutate(across(where(is.numeric), label_comma(accuracy = 1)))
+  pov.pop.shr <- tbl.values[,poverty.race.share.col] %>% mutate(across(where(is.numeric), label_percent(accuracy = 0.1))) %>% setNames(poverty.race.total.col)
 
   # Final table with values
   results[[c.yr]][["processed-data-tables"]][["table.3.poverty.by.race"]] <- rbind(pov.pop.tot,pov.pop.shr)
@@ -237,3 +237,81 @@ for (analysis.yr in yr) {
 
 rm(pov.pop.tot, pov.pop.shr, tbl.values, temp, tot, moe, temp2)  
   
+# Create Table 4 ----------------------------------------------------------
+for (analysis.yr in yr) {
+  c.yr <- as.character(analysis.yr)
+  
+  # Load Total population in poverty from the base table
+  temp <- results[[c.yr]][["raw-data-tables"]][["acs/acs1"]][["B19013"]] %>%
+    filter(Geography != "Central Puget Sound") %>%
+    arrange(Geography) %>%
+    mutate(Race="All Households") %>%
+    setNames(c("Geography","Estimate","MoE", "Race"))
+  
+  # Read data from each table of poverty statistics by race and append to the total population in poverty table
+  for (tbl in names(hhincome.race.tables)) {
+    
+    temp2 <- results[[c.yr]][["raw-data-tables"]][["acs/acs1"]][[tbl]] %>%
+      filter(Geography != "Central Puget Sound") %>%
+      arrange(Geography) %>%
+      mutate(Race=hhincome.race.tables[[tbl]]) %>%
+      setNames(c("Geography","Estimate","MoE", "Race"))
+    
+    temp <- bind_rows(temp, temp2) %>%
+      mutate(Value="Total")
+  }
+  
+  # Add in Rows for Shares
+  for (c in counties) {
+    t.hh <- temp %>% filter(Geography==c, Race=="All Households") %>% pull(`Estimate`)
+    
+    temp2 <- temp %>% 
+      filter(Geography==c) %>%
+      mutate(`Share-Estimate` = `Estimate`/ t.hh, `Share-MoE` = `MoE`/ t.hh) %>%
+      select(Geography, Race, `Share-Estimate`, `Share-MoE`) %>%
+      setNames(c("Geography","Race", "Estimate","MoE")) %>%
+      mutate(Value="Share")
+    
+    temp <- bind_rows(temp, temp2)
+ 
+  }
+
+  # Convert from long to wide format
+  tbl.values <- pivot_wider(temp, id_cols=Race, names_from = c(Geography,Value), values_from = c("Estimate","MoE"))  
+  
+  hhincome.total.col <- c("Race",
+                          "Estimate_King County_Total", "MoE_King County_Total",
+                          "Estimate_Kitsap County_Total", "MoE_Kitsap County_Total",
+                          "Estimate_Pierce County_Total", "MoE_Pierce County_Total",
+                          "Estimate_Snohomish County_Total", "MoE_Snohomish County_Total")
+  
+  hhincome.tot <- tbl.values[,hhincome.total.col] %>% mutate(across(where(is.numeric), label_dollar(accuracy = 1)))
+  
+  hhincome.share.col <- c("Race",
+                          "Estimate_King County_Share", "MoE_King County_Share",
+                          "Estimate_Kitsap County_Share", "MoE_Kitsap County_Share",
+                          "Estimate_Pierce County_Share", "MoE_Pierce County_Share",
+                          "Estimate_Snohomish County_Share", "MoE_Snohomish County_Share")
+  
+  hhincome.shr <- tbl.values[,hhincome.share.col] %>% mutate(across(where(is.numeric), label_percent(accuracy = 0.1))) %>%
+    setNames(colnames(hhincome.tot))
+  
+  # Final table with values
+  results[[c.yr]][["processed-data-tables"]][["table.4.median.income.by.race"]] <- rbind(hhincome.tot, hhincome.shr)
+  
+  temp <- results[[c.yr]][["processed-data-tables"]][["table.4.median.income.by.race"]] %>% setNames(c("",tbl4.colnames))
+
+  results[[c.yr]][["formatted-data-tables"]][["table.4.median.income.by.race"]] <- kbl(temp, caption = paste0("Median Household Income by Race and Hispanic/Latino Origin: ", analysis.yr), booktabs = T, align='lcccccccc') %>%
+    kable_styling(latex_options = "striped") %>%
+    kable_styling(latex_options = "scale_down") %>%
+    add_header_above(c(" " = 1, "King\n County" = 2, "Kitsap\n County" = 2, "Pierce\n County" = 2, "Snohomish\n County" = 2)) %>%
+    row_spec(1:1, bold = T) %>%
+    add_indent(c(2:8, 12:18), level_of_indent = 4) %>%
+    add_indent(c(9:10, 19:20), level_of_indent = 1) %>%
+    row_spec(11:11, bold = T) %>%
+    footnote(general = paste0("Source: ", analysis.yr, " American Community Survey 1-Year Estimates")) %>%
+    landscape()   
+}
+  
+rm(hhincome.shr, hhincome.tot, tbl.values, temp, temp2)
+

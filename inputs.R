@@ -23,8 +23,8 @@ census.tables <- list("B01001.1yr" = list("B01001","Sex by Age","acs/acs1"),
                       "B19013E.1yr" = list("B19013E","Median Household Income in the Past 12 Months (Native Hawaiian and Other Pacific Islander Alone Householder)", "acs/acs1"),
                       "B19013F.1yr" = list("B19013F","Median Household Income in the Past 12 Months (Some Other Race Householder)", "acs/acs1"),
                       "B19013G.1yr" = list("B19013G","Median Household Income in the Past 12 Months (Two or More Races Householder)", "acs/acs1"),
-                      "B19013H.1yr" = list("B19013H","Median Household Income in the Past 12 Months (Hispanic or Latino Householder)", "acs/acs1"),
-                      "B19013I.1yr" = list("B19013I","Median Household Income in the Past 12 Months (White Alone, Not Hispanic or Latino Householder)", "acs/acs1"),
+                      "B19013H.1yr" = list("B19013H","Median Household Income in the Past 12 Months (White Alone, Not Hispanic or Latino Householder)", "acs/acs1"),
+                      "B19013I.1yr" = list("B19013I","Median Household Income in the Past 12 Months (Hispanic or Latino Householder)", "acs/acs1"),
                       "B02001.5yr" = list("B02001","Race", "acs/acs5"),
                       "B03002.5yr" = list("B03002","Hispanic or Latino by Race", "acs/acs5"),
                       "B17001.5yr" = list("B17001","Poverty Status in the Past 12 Months by Sex by Age", "acs/acs5"),
@@ -66,6 +66,17 @@ poverty.race.tables <- list("B17001A" = "White",
                             "B17001H" = "White, not Hispanic or Latino",
                             "B17001I" = "Hispanic or Latino")
 
+hhincome.race.tables <- list("B19013A" = "White",
+                            "B19013B" = "Black or African American",
+                            "B19013C" = "American Indian/Alaska Native",
+                            "B19013D" = "Asian",
+                            "B19013E" = "Native Hawaiian/Other Pacific Islander",
+                            "B19013F" = "Some other race",
+                            "B19013G" = "Two or more races",
+                            "B19013H" = "White, not Hispanic or Latino",
+                            "B19013I" = "Hispanic or Latino")
+
 tbl1.colnames <- c("Estimate", "Estimate", "MoE","Estimate", "MoE","Estimate", "MoE","Estimate", "MoE","Estimate", "MoE","Estimate","Estimate", "MoE")
 tbl2.colnames <- c("Estimate", "Estimate", "MoE","Estimate", "MoE","Estimate", "MoE")
 tbl3.colnames <- c("Estimate", "MoE","Estimate", "MoE","Estimate", "MoE","Estimate", "MoE","Estimate", "MoE")
+tbl4.colnames <- c("Estimate", "MoE","Estimate", "MoE","Estimate", "MoE","Estimate", "MoE")

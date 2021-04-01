@@ -42,7 +42,7 @@ library(kableExtra)
 # Packages for Markdown
 library(knitr)
 
-Sys.setenv(CENSUS_KEY='<add census api key>')
+Sys.setenv(CENSUS_KEY='<enter api key here>')
 results <- NULL
 
 # Source file to do the data crunching and table and map creation
@@ -147,6 +147,12 @@ tbl
 tbl <- results[[as.character(data.yr)]][["formatted-data-tables"]][["table.3.poverty.by.race"]]
 tbl
 ```
+\newpage
+``` {r echo=FALSE}
+tbl <- results[[as.character(data.yr)]][["formatted-data-tables"]][["table.4.median.income.by.race"]]
+tbl
+```
+
 
 [^1]: Title VI of the Civil Rights Act of 1964 states that “no person in the United States shall, on the ground of race, color, or national origin, be excluded from participation in, be denied the benefits of, or be subjected to discrimination under any program or activity receiving Federal financial assistance.” 
 [^2]: Executive Order 12898, Federal Actions to Address Environmental Justice in Minority Populations and Low-Income Populations, February 1994.
