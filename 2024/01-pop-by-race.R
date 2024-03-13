@@ -13,15 +13,17 @@ library(tidyverse)
 year <- (2022)
 acs_type <- "acs1"
 
-export_name <- c("export", year, acs_type)
+raw_export <- c("raw", year, acs_type)
+formatted_export <- c("formatted", year, acs_type)
 export_path <- "Y:/Demog Profile/2024/Data/01-pop-by-race"
 
 table_order <- c("race",
-                 "estimate_Region","moe_Region", "rr_Region",
-                 "estimate_King", "moe_King", "rr_King",
-                 "estimate_Kitsap", "moe_Kitsap", "rr_Kitsap",
-                 "estimate_Pierce", "moe_Pierce", "rr_Pierce",
-                 "estimate_Snohomish", "moe_Snohomish", "rr_Snohomish")
+                 "estimate_Region","moe_Region",
+                 "estimate_King", "moe_King",
+                 "estimate_Kitsap", "moe_Kitsap", 
+                 "estimate_Pierce", "moe_Pierce", 
+                 "estimate_Snohomish", "moe_Snohomish",
+                 "rr_Region", "rr_King","rr_Kitsap","rr_Pierce", "rr_Snohomish")
 re_order <- c("American Indian and Alaska Native", "Asian", "Black", "Hispanic or Latinx",
               "Native Hawaiian and Other Pacific Islander","White", "Some Other Race", "Two or more races", "Total")
 
@@ -31,6 +33,11 @@ B03002_raw <- get_acs_recs(geography = 'county',
                            years = year,
                            counties = c("King", "Kitsap", "Pierce", "Snohomish"),
                            acs.type = acs_type)
+
+# Export
+file_name_raw <- paste(raw_export, collapse = "_")
+file_name_raw <- paste(file_name_raw, ".csv", sep = "")
+write.csv(B03002_raw, file = file.path(export_path, file_name_raw), row.names = FALSE)
 
 # Summarize by race/ethnicity
 B03002 <- B03002_raw %>%
@@ -74,7 +81,10 @@ table01$prct_kitsap = table01$estimate_Kitsap/table01_prct$estimate_Kitsap
 table01$prct_pierce = table01$estimate_Pierce/table01_prct$estimate_Pierce
 table01$prct_snohomish = table01$estimate_Snohomish/table01_prct$estimate_Snohomish
 
+# Calculate percentage POC by region/county
+
+
 # Export
-file_name <- paste(export_name, collapse = "_")
-file_name <- paste(file_name, ".csv", sep = "")
-write.csv(table01, file = file.path(export_path, file_name), row.names = FALSE)
+file_name_formatted <- paste(formatted_export, collapse = "_")
+file_name_formatted <- paste(file_name_formatted, ".csv", sep = "")
+write.csv(table01, file = file.path(export_path, file_name_formatted), row.names = FALSE)
