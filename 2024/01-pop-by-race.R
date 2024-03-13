@@ -1,7 +1,6 @@
 # TITLE: 2024 Demographic Profile - Table 01 - Population by Race
 # GEOGRAPHIES: County & PSRC Region
 # DATA SOURCE: ACS Data
-# LAST EDITED: 2.29.2024
 # AUTHOR: Eric Clute
 
 
