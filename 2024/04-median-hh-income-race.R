@@ -9,7 +9,7 @@ library(tidycensus)
 library(tidyverse)
 library(dplyr)
 
-year <- (2019)
+year <- (2022)
 acs_type <- "1"
 
 raw_export <- c("raw", year, "acs_pums", acs_type)
