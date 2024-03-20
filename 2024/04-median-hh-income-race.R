@@ -29,7 +29,7 @@ re_order <- c("American Indian and Alaska Native", "Asian", "Black", "Hispanic o
 # Pull Data
 pums_raw <- get_psrc_pums(acs_type,year,"h",c("PRACE","HINCP"))
 
-# Summarize by race/ethnicity
+# Summarize by race/ethnicity - county
 pums <- pums_raw %>%
   mutate(race = case_when(grepl("White alone", PRACE) ~ "White",
                           grepl("Black or African American alone", PRACE) ~ "Black",
@@ -50,9 +50,16 @@ pums <- pums_raw %>%
                          !is.na(race) ~ "")) %>%            
   filter(!race == "")
 
-incbyre <- psrc_pums_median(pums, "HINCP", group_vars = c("DATA_YEAR","COUNTY", "race"),rr=TRUE)
+incbyre <- psrc_pums_median(pums, "HINCP", group_vars = c("COUNTY", "race"),rr=TRUE)
 names(incbyre)[names(incbyre) == 'COUNTY'] <- 'name'
-incbyre <- incbyre %>% filter(!DATA_YEAR == "Total")
+incbyre <- incbyre %>% filter(!name == "Region")
+
+# Summarize by race/ethnicity - region & join to county data
+incbyre_region <- psrc_pums_median(pums, "HINCP", group_vars = c("race"),rr=TRUE)
+names(incbyre_region)[names(incbyre_region) == 'COUNTY'] <- 'name'
+
+incbyre <- rbind(incbyre, incbyre_region)
+rm(incbyre_region)
 
 # Group by County & R/E, order 
 table04 <- incbyre %>%
@@ -80,9 +87,8 @@ table04$prct_Snohomish = table04$estimate_Snohomish/table04_prct$estimate_Snohom
 # Calculate percentage POC by region/county, crunch new MOE
 poc_raw <- pums %>% filter(!poc == "")
 
-incpoc <- psrc_pums_median(poc_raw, "HINCP", group_vars = c("DATA_YEAR","COUNTY"),rr=TRUE)
+incpoc <- psrc_pums_median(poc_raw, "HINCP", group_vars = c("COUNTY"),rr=TRUE)
 names(incpoc)[names(incpoc) == 'COUNTY'] <- 'name'
-incpoc <- incpoc %>% filter(!DATA_YEAR == "Total")
 
 poc_pivot <- incpoc %>%
   group_by(name) %>%
