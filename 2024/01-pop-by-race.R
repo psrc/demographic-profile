@@ -123,8 +123,19 @@ names(poc_pivot) = gsub(pattern = "reliability", replacement = "rr", x = names(p
 # Join to Table01
 table01 <- rbind(poc_pivot, table01)
 table01 <- table01[c(which(table01$race != "poc"), which(table01$race == "poc")), ]
+table01$race <- gsub("poc", "People of Color", table01$race)
+
+# Rounded estimates
+columns_to_round <- grep("^estimate_", names(table01), value = TRUE) # Columns to be rounded
+table01[columns_to_round] <- lapply(table01[columns_to_round], function(x) round(x, -2)) # Round to nearest 100
+
+columns_to_round <- grep("^moe_", names(table01), value = TRUE) # Columns to be rounded
+table01[columns_to_round] <- lapply(table01[columns_to_round], function(x) round(x, 0)) # Round to nearest 1
+
+columns_to_truncate <- grep("^prct_", names(table01), value = TRUE) # Columns to be truncated
+table01[columns_to_truncate] <- lapply(table01[columns_to_truncate], function(x) trunc(x * 1000) / 1000) # Truncate to 3 decimals
 
 # Export
-# file_name_formatted <- paste(formatted_export, collapse = "_")
-# file_name_formatted <- paste(file_name_formatted, ".csv", sep = "")
-# write.csv(table01, file = file.path(export_path, file_name_formatted), row.names = FALSE)
+file_name_formatted <- paste(formatted_export, collapse = "_")
+file_name_formatted <- paste(file_name_formatted, ".csv", sep = "")
+write.csv(table01, file = file.path(export_path, file_name_formatted), row.names = FALSE)
