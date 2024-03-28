@@ -112,6 +112,11 @@ poc_pivot$prct_Snohomish = poc_pivot$estimate_Snohomish/table04_prct$estimate_Sn
 table04 <- rbind(poc_pivot, table04)
 table04 <- table04[c(which(table04$race != "poc"), which(table04$race == "poc")), ]
 
+# Export raw table
+file_name_raw <- paste(raw_export, collapse = "_")
+file_name_raw <- paste(file_name_raw, ".csv", sep = "")
+write.csv(table04, file = file.path(export_path, file_name_raw), row.names = FALSE)
+
 # Rounded estimates
 columns_to_round <- grep("^estimate_", names(table04), value = TRUE) # Columns to be rounded
 table04[columns_to_round] <- lapply(table04[columns_to_round], function(x) round(x, -2)) # Round to nearest 100
