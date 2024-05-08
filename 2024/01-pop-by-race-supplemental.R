@@ -110,22 +110,12 @@ p9_2020_final <- p9_2020_final[c(which(p9_2020_final$race != "poc"), which(p9_20
 p9_2020_final$race <- gsub("poc", "People of Color", p9_2020_final$race)
 p9_2020_final$year <- year
 
-# Rounded estimates
-columns_to_round <- grep(paste(integers_to_round_for_final_output, collapse = "|"), names(p9_2020_final), value = TRUE)
-columns_to_round <- columns_to_round[!grepl("^prct_", columns_to_round)]
-p9_2020_final[columns_to_round] <- lapply(p9_2020_final[columns_to_round], function(x) round(x, -2)) # Rounded to nearest 100
-
-columns_to_truncate <- grep("^prct_", names(p9_2020_final), value = TRUE) # Columns to be truncated
-p9_2020_final[columns_to_truncate] <- lapply(p9_2020_final[columns_to_truncate], function(x) trunc(x * 1000) / 1000) # Truncate to 3 decimals
-
-
 # 2010 Decennial Data -------------------------------------
 
 year <- (2010)
 data_type <- 'P'
 
 raw_export <- c("raw", year, data_type)
-formatted_export <- c("formatted", year, data_type)
 
 # Pull Data
 p_2010_raw <- get_decennial_recs(geography = 'county',
@@ -215,21 +205,12 @@ p_2010_final <- p_2010_final[c(which(p_2010_final$race != "poc"), which(p_2010_f
 p_2010_final$race <- gsub("poc", "People of Color", p_2010_final$race)
 p_2010_final$year <- year
 
-# Rounded estimates
-columns_to_round <- grep(paste(integers_to_round_for_final_output, collapse = "|"), names(p_2010_final), value = TRUE)
-columns_to_round <- columns_to_round[!grepl("^prct_", columns_to_round)]
-p_2010_final[columns_to_round] <- lapply(p_2010_final[columns_to_round], function(x) round(x, -2)) # Rounded to nearest 100
-
-columns_to_truncate <- grep("^prct_", names(p_2010_final), value = TRUE) # Columns to be truncated
-p_2010_final[columns_to_truncate] <- lapply(p_2010_final[columns_to_truncate], function(x) trunc(x * 1000) / 1000) # Truncate to 3 decimals
-
 # 2000 Decennial Data -------------------------------------
 
 year <- (2000)
 data_type <- 'P'
 
 raw_export <- c("raw", year, data_type)
-formatted_export <- c("formatted", year, data_type)
 
 # Pull Data
 p_2000_raw <- get_decennial_recs(geography = 'county',
@@ -318,14 +299,6 @@ p_2000_final <- rbind(poc_pivot, p_2000_final)
 p_2000_final <- p_2000_final[c(which(p_2000_final$race != "poc"), which(p_2000_final$race == "poc")), ]
 p_2000_final$race <- gsub("poc", "People of Color", p_2000_final$race)
 p_2000_final$year <- year
-
-# Rounded estimates
-columns_to_round <- grep(paste(integers_to_round_for_final_output, collapse = "|"), names(p_2000_final), value = TRUE)
-columns_to_round <- columns_to_round[!grepl("^prct_", columns_to_round)]
-p_2000_final[columns_to_round] <- lapply(p_2000_final[columns_to_round], function(x) round(x, -2)) # Rounded to nearest 100
-
-columns_to_truncate <- grep("^prct_", names(p_2000_final), value = TRUE) # Columns to be truncated
-p_2000_final[columns_to_truncate] <- lapply(p_2000_final[columns_to_truncate], function(x) trunc(x * 1000) / 1000) # Truncate to 3 decimals
 
 # Combine data together -------------------------------------
 
