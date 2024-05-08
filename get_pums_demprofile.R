@@ -6,10 +6,8 @@ library(data.table)
 #library(gt)
 
 # 1. Setup: List necessary direct-PUMS variables & table names ------
-dyear <- 2022
 geolabels <- data.frame(raw=c("King","Kitsap","Pierce","Snohomish","Region"),
-              published=c(paste(c("King","Kitsap","Pierce","Snohomish"), "County"),"Central Puget Sound")
-                       )
+          published=c(paste(c("King","Kitsap","Pierce","Snohomish"), "County"),"Central Puget Sound"))
 
 # PUMS variables for population-scale analysis
 pvars <- c(
@@ -43,10 +41,54 @@ hvars <- c(
   "HDIS"                    # Presence of disabled persons in household
 )
 
-asian_regex <- paste0(c("Asian Indian", "Cambodian", "Chinese", "Taiwanese", "Filipino",
-                  "Japanese", "Korean", "Laotian", "Pakistani", "Thai", "Vietnamese"), collapse="|") %>% paste0("(",.,")")
+asian_regex <- paste0(
+  c("Asian Indian", "Cambodian", "Chinese", "Taiwanese", "Filipino",
+    "Japanese", "Korean", "Laotian", "Pakistani", "Thai", "Vietnamese"),
+  collapse="|") %>% paste0("(",.,")")
 
 # 2. Setup: Helper functions ----------------------------------------
+
+add_poverty_vars <- function(df){
+  df %<>% mutate(poverty_100 = case_when(is.na(POVPIP) ~ NA_character_,
+                                         POVPIP<100 ~ "Yes",
+                                         TRUE ~ "No"),
+                 poverty_200 = case_when(is.na(POVPIP) ~ NA_character_,
+                                         POVPIP<200 ~ "Yes",
+                                         TRUE ~ "No"))
+}
+
+add_pp_vars <- function(df){
+  df %<>% mutate(
+    age_group = factor(
+      case_when(is.na(AGEP) ~ NA_character_,
+                AGEP>64 ~ "65+",
+                AGEP<18 ~ "< 18",
+                TRUE ~ "18-64")),
+    age_detail = factor(
+      case_when(is.na(AGEP) ~ NA_character_,
+                between(AGEP,65,84) ~ "65-84",
+                between(AGEP,5,17)  ~ "5-17",
+                AGEP < 4 ~ "0-4",
+                AGEP > 84 ~ "85+",
+                TRUE ~ "18-64")),
+    asian_subgrp = factor(
+      case_when(PRACE!="Asian alone" ~ NA_character_,
+                PRACE=="Asian alone" & grepl(!!asian_regex, as.character(RAC2P)) ~ as.character(RAC2P),
+                PRACE=="Asian alone" ~ "Other Asian",
+                TRUE ~ NA_character_)),
+    lep = factor(
+      case_when(AGEP<5 ~ NA_character_,
+                stringr::str_detect(ENG, "^(Well|Not)") ~"Yes",
+                !is.na(ENG) ~ "No")))
+}
+
+add_hh_vars <- function(df){
+  df %<>% mutate(
+    zero_veh=factor(
+      case_when(grepl("^No ", as.character(VEH)) ~"Yes",
+                grepl("^\\d ", as.character(VEH)) ~"No",
+                is.na(VEH) ~NA_character_)))
+}
 
 ctyreg_pums_count <- function(so, groupvars=NULL){                                                 # Function for county + region counts
   rs      <- list()
@@ -90,28 +132,8 @@ get_pums_dp <- function(dyear){
   pp_df <- get_psrc_pums(5, dyear, "p", pvars, dir=pums_rds)                                  # Retrieve persons data
   hh_df <- get_psrc_pums(5, dyear, "h", hvars, dir=pums_rds)                                  # Retrieve household data
 
-  pp_df %<>% mutate(
-    poverty_100 = case_when(is.na(POVPIP) ~ NA_character_,                                    # Create additional analysis variables
-                            POVPIP<100 ~ "Yes",
-                            TRUE ~ "No"),
-    poverty_200 = case_when(is.na(POVPIP) ~ NA_character_,
-                            POVPIP<200 ~ "Yes",
-                            TRUE ~ "No"),
-    age_group = factor(case_when(is.na(AGEP) ~ NA_character_,
-                          AGEP>64 ~ "65+",
-                          AGEP<18 ~ "< 18",
-                          TRUE ~ "18-64")),
-    age_detail = factor(case_when(is.na(AGEP) ~ NA_character_,
-                          between(AGEP,65,84) ~ "65-84",
-                          between(AGEP,5,17)  ~ "5-17",
-                          AGEP < 4 ~ "0-4",
-                          AGEP > 84 ~ "85+",
-                          TRUE ~ "18-64")),
-    asian_subgrp = factor(case_when(PRACE!="Asian alone" ~ NA_character_,
-                          PRACE=="Asian alone" & grepl(!!asian_regex, as.character(RAC2P)) ~ as.character(RAC2P),
-                          PRACE=="Asian alone" ~ "Other Asian",
-                          TRUE ~ NA_character_))
-  )
+  pp_df %<>% add_poverty_vars() %>% add_pp_vars()
+  hh_df %<>% add_poverty_vars() %>% add_hh_vars()
 
   deep_pocket <- list()                                                                       # List will contain all tables
   deep_pocket$"Tbl 0 Poverty Summary" <-                                                      # Item names become export spreadsheet tabs
@@ -185,9 +207,48 @@ get_pums_dp <- function(dyear){
   deep_pocket$"Tbl 10c PovDisab Race" <-
     psrc_pums_count(filter(pp_df, grepl("^With ", as.character(DIS))), group_vars=c("PRACE"))
 
+# Table 11 - Zero-vehicle Households
+  deep_pocket$"Tbl 11a No Veh Summary" <-
+    ctyreg_pums_count(hh_df, "zero_veh")
+  deep_pocket$"Tbl 11b No Veh POC" <-
+    ctyreg_pums_count(filter(hh_df, HRACE!="White alone"), "zero_veh")
+  deep_pocket$"Tbl 11c No Veh Pov100" <-
+    ctyreg_pums_count(filter(hh_df, poverty_100=="Yes"), "zero_veh")
+  deep_pocket$"Tbl 11d No Veh Pov200" <-
+    ctyreg_pums_count(filter(hh_df, poverty_200=="Yes"), "zero_veh")
+  deep_pocket$"Tbl 11e No Veh 65+" <-
+    ctyreg_pums_count(filter(hh_df, stringr::str_detect(R65, "^\\d ")), "zero_veh")
+  deep_pocket$"Tbl 11f No Veh Dis" <-
+    ctyreg_pums_count(filter(hh_df, stringr::str_detect(HDIS, "^With ")), "zero_veh")
+
+# Table 12 - Common Non-English Languages
+  deep_pocket$"Tbl 12 Common Languages" <-
+    ctyreg_pums_count(pp_df, "LANP") %>% filter(LANP!="Total") %>%
+    slice_max(order_by=share, n=12, by=COUNTY, na_rm=TRUE)                                    # Selecting top 12 per geography
+
+# Table 14 - Regional LEP by Language Spoken
+  lep_languages <- psrc_pums_count(filter(pp_df, lep=="Yes"), group_vars="LANP") %>%          # First pull to choose languages
+    filter(LANP!="Total" & (count + count_moe) > 5000) %>% pull(LANP) %>%                     # -- to enable LEP share per language
+    as.character() %>% unique()
+  lep_stats <- filter(pp_df, AGEP>=5 & LANP %in% lep_languages) %>%
+    psrc_pums_count(group_vars=c("LANP","lep")) %>% filter(LANP!="Total" & lep!="No") %>%     # LEP share per language
+    split(f=.$lep) %>% lapply(select,-lep)
+  lep_stats$Total %<>% select(-contains("share")) %>%
+    rename_with(~ paste0("total_", .x, recycle0 = TRUE),
+    starts_with("count", ignore.case=FALSE))
+  lep_stats$Yes %<>% rename_with(~ paste0("lep_", .x, recycle0 = TRUE),
+                matches("count|share", ignore.case=FALSE))
+  deep_pocket$"Tbl 14 LEP Languages" <-
+    inner_join(lep_stats$Total, lep_stats$Yes, by=c("LANP","DATA_YEAR","COUNTY")) %>%
+    arrange(desc(lep_count)) %>%
+    rename_with(.fn= ~paste0(.,"_values"), .cols=matches("(count|share)$")) %>%
+    tidyr::pivot_longer(cols=matches("(values|moe)$"),                                        # This results in the right table structure
+             names_to = c("metric", ".value"),                                                # -- although R displays counts & shares
+             names_pattern = "(.*_)(values|moe)$")                                            # -- with identical numeric format, e.g. decimal places
+
   deep_pocket %<>% lapply(setDT)
   deep_pocket[1:4] %<>% lapply(selectvars)
-  deep_pocket[c(1:4, 8:9, 11:12, 14:15)] %<>% lapply(pivot_counties)
+  deep_pocket[c(1:4, 8:9, 11:12, 14:22)] %<>% lapply(pivot_counties)
   return(deep_pocket)
 }
 
