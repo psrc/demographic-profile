@@ -3,7 +3,6 @@ library(psrccensus)
 library(dplyr)
 library(tidyr)
 library(data.table)
-#library(gt)
 
 # 1. Setup: List necessary direct-PUMS variables & table names ------
 geolabels <- data.frame(raw=c("King","Kitsap","Pierce","Snohomish","Region"),
@@ -78,8 +77,11 @@ add_pp_vars <- function(df){
                 TRUE ~ NA_character_)),
     lep = factor(
       case_when(AGEP<5 ~ NA_character_,
-                stringr::str_detect(ENG, "^(Well|Not)") ~"Yes",
-                !is.na(ENG) ~ "No")))
+                stringr::str_detect(ENG, "^Very") ~"No",
+                !is.na(ENG) ~ "Yes")),
+    eng_only=factor(
+      case_when(is.na(LANP) ~ "Yes",
+                TRUE ~ "No")))
 }
 
 add_hh_vars <- function(df){
@@ -87,13 +89,14 @@ add_hh_vars <- function(df){
     zero_veh=factor(
       case_when(grepl("^No ", as.character(VEH)) ~"Yes",
                 grepl("^\\d ", as.character(VEH)) ~"No",
-                is.na(VEH) ~NA_character_)))
+                is.na(VEH) ~NA_character_)),
+    hh_type=stringr::str_extract(HHT, "^.*e household\\w{0,2}"))
 }
 
 ctyreg_pums_count <- function(so, groupvars=NULL){                                                 # Function for county + region counts
   rs      <- list()
-  rs[[1]] <- psrc_pums_count(so, group_vars=groupvars, incl_na=FALSE)                              # incl_na=FALSE option for accurate within-subgroup shares
-  rs[[2]] <- psrc_pums_count(so, group_vars=c("COUNTY", groupvars), incl_na=FALSE) %>%
+  rs[[1]] <- psrc_pums_count(so, group_vars=groupvars, incl_na=FALSE, rr=TRUE)                     # incl_na=FALSE option for accurate within-subgroup shares
+  rs[[2]] <- psrc_pums_count(so, group_vars=c("COUNTY", groupvars), incl_na=FALSE, rr=TRUE) %>%
     .[COUNTY!="Region"]                                                                            # Remove duplicate total level
   rs %<>% rbindlist() %>% arrange(DATA_YEAR, COUNTY)                                               # Combine county & regional results
   return(rs)
@@ -101,8 +104,8 @@ ctyreg_pums_count <- function(so, groupvars=NULL){                              
 
 ctyreg_pums_median <- function(so, stat_var, groupvars=NULL){                                      # Function for county + region median
   rs      <- list()
-  rs[[1]] <- psrc_pums_median(so, stat_var, groupvars, incl_na=FALSE)                              # incl_na=FALSE option for accurate within-subgroup shares
-  rs[[2]] <- psrc_pums_median(so, stat_var, group_var=c("COUNTY", groupvars), incl_na=FALSE) %>%
+  rs[[1]] <- psrc_pums_median(so, stat_var, groupvars, incl_na=FALSE, rr=TRUE)                     # incl_na=FALSE option for accurate within-subgroup shares
+  rs[[2]] <- psrc_pums_median(so, stat_var, group_var=c("COUNTY", groupvars), incl_na=FALSE, rr=TRUE) %>%
     .[COUNTY!="Region"]                                                                            # Remove duplicate total level
   rs %<>% rbindlist() %>% arrange(DATA_YEAR, COUNTY)                                               # Combine county & regional results
   return(rs)
@@ -117,10 +120,7 @@ pivot_counties <- function(df){                                                 
   df %<>% tidyr::pivot_wider(
             names_from = COUNTY,
             values_from = matches("(count|share|median|moe)", ignore.case=FALSE),
-            names_sort = TRUE, names_vary = "slowest") #%>% gt() %>%
-        # gt::tab_spanner_delim(
-        #     delim="_", columns=matches("(count|share|median|moe)", ignore.case=FALSE),
-        #     split="last", limit=1, reverse=TRUE) %>% rm_stubhead()
+            names_sort = TRUE, names_vary = "slowest")
   return(df)
 }
 
@@ -129,8 +129,8 @@ pivot_counties <- function(df){                                                 
 # Generate all indicators for a single survey
 get_pums_dp <- function(dyear){
   pums_rds <- "J:/Projects/Census/AmericanCommunitySurvey/Data/PUMS/pums_rds"                 # Network PUMS location
-  pp_df <- get_psrc_pums(5, dyear, "p", pvars, dir=pums_rds)                                  # Retrieve persons data
-  hh_df <- get_psrc_pums(5, dyear, "h", hvars, dir=pums_rds)                                  # Retrieve household data
+  pp_df <- get_psrc_pums(1, dyear, "p", pvars, dir=pums_rds)                                  # Retrieve persons data
+  hh_df <- get_psrc_pums(1, dyear, "h", hvars, dir=pums_rds)                                  # Retrieve household data
 
   pp_df %<>% add_poverty_vars() %>% add_pp_vars()
   hh_df %<>% add_poverty_vars() %>% add_hh_vars()
@@ -159,25 +159,25 @@ get_pums_dp <- function(dyear){
 # Table 5 - Asian detail
   asian_detail <- list()
   asian_detail$pop <- psrc_pums_count(filter(pp_df, PRACE=="Asian alone"),
-                         group_vars="asian_subgrp") %>%
+                         group_vars="asian_subgrp", rr=TRUE) %>%
     select(-any_of(contains("share")))
   asian_detail$pov100 <- psrc_pums_count(filter(pp_df, PRACE=="Asian alone"),
-                            group_vars=c("asian_subgrp", "poverty_100"), incl_na=FALSE) %>%
+                            group_vars=c("asian_subgrp", "poverty_100"), incl_na=FALSE, rr=TRUE) %>%
     filter(poverty_100=="Yes") %>% select(-any_of(contains("count")))
   asian_detail$pov200 <- psrc_pums_count(filter(pp_df, PRACE=="Asian alone"),
-                            group_vars=c("asian_subgrp", "poverty_200"), incl_na=FALSE) %>%
+                            group_vars=c("asian_subgrp", "poverty_200"), incl_na=FALSE, rr=TRUE) %>%
     filter(poverty_200=="Yes") %>% select(-any_of(contains("count")))
   asian_detail$inc <- psrc_pums_median(filter(pp_df, PRACE=="Asian alone"), "HINCP",
-                            group_vars="asian_subgrp", incl_na=FALSE)
+                            group_vars="asian_subgrp", incl_na=FALSE, rr=TRUE)
   deep_pocket$"Tbl 5 Asian Detail" <-
     Reduce(function(x, y) merge(x, y, all=TRUE), asian_detail)
 
 # Table 6 - Poverty, Race & Sex
   deep_pocket$"Tbl 6a LowInc Race-Hisp Sex 100" <-
-    psrc_pums_count(pp_df, group_vars=c("PRACE","poverty_100","SEX")) %>%
+    psrc_pums_count(pp_df, group_vars=c("PRACE","poverty_100","SEX"), rr=TRUE) %>%
     filter(poverty_100=="Yes")
   deep_pocket$"Tbl 6b LowInc Race-Hisp Sex 200" <-
-    psrc_pums_count(pp_df, group_vars=c("PRACE","poverty_200","SEX")) %>%
+    psrc_pums_count(pp_df, group_vars=c("PRACE","poverty_200","SEX"), rr=TRUE) %>%
     filter(poverty_200=="Yes")
 
 # Table 8 - Ages 65+
@@ -187,7 +187,7 @@ get_pums_dp <- function(dyear){
   deep_pocket$"Tbl 8b Pov65+ Age Detail" <-
     ctyreg_pums_count(filter(pp_df, age_group=="65+"), c("age_detail"))
   deep_pocket$"Tbl 8c Pov65+ Race" <-
-    psrc_pums_count(filter(pp_df, age_group=="65+"), group_vars=c("PRACE"))
+    psrc_pums_count(filter(pp_df, age_group=="65+"), group_vars=c("PRACE"), rr=TRUE)
 
 # Table 9 - Ages < 18
   deep_pocket$"Tbl 9a Pov<18 Summary" <-
@@ -196,7 +196,7 @@ get_pums_dp <- function(dyear){
   deep_pocket$"Tbl 9b Pov<18 Age Detail" <-
     ctyreg_pums_count(filter(pp_df, age_group=="< 18"), c("age_detail"))
   deep_pocket$"Tbl 9c Pov<18 Race" <-
-    psrc_pums_count(filter(pp_df, age_group=="< 18"), group_vars=c("PRACE"))
+    psrc_pums_count(filter(pp_df, age_group=="< 18"), group_vars=c("PRACE"), rr=TRUE)
 
 # Table 10 - Disability status
   deep_pocket$"Tbl 10a PovDisab Summary" <-
@@ -205,7 +205,7 @@ get_pums_dp <- function(dyear){
   deep_pocket$"Tbl 10b PovDisab Age Detail" <-
     ctyreg_pums_count(filter(pp_df, grepl("^With ", as.character(DIS))), c("age_detail"))
   deep_pocket$"Tbl 10c PovDisab Race" <-
-    psrc_pums_count(filter(pp_df, grepl("^With ", as.character(DIS))), group_vars=c("PRACE"))
+    psrc_pums_count(filter(pp_df, grepl("^With ", as.character(DIS))), group_vars=c("PRACE"), rr=TRUE)
 
 # Table 11 - Zero-vehicle Households
   deep_pocket$"Tbl 11a No Veh Summary" <-
@@ -246,9 +246,27 @@ get_pums_dp <- function(dyear){
              names_to = c("metric", ".value"),                                                # -- although R displays counts & shares
              names_pattern = "(.*_)(values|moe)$")                                            # -- with identical numeric format, e.g. decimal places
 
-  deep_pocket %<>% lapply(setDT)
-  deep_pocket[1:4] %<>% lapply(selectvars)
-  deep_pocket[c(1:4, 8:9, 11:12, 14:22)] %<>% lapply(pivot_counties)
+# Testing--Table 7 - Household Type
+  deep_pocket$"Tbl 7a Household Type Summary" <-
+    ctyreg_pums_count(hh_df, "hh_type")
+  deep_pocket$"Tbl 7b Household Type Pov100" <-
+    ctyreg_pums_count(filter(hh_df, poverty_100=="Yes"), "hh_type")
+  deep_pocket$"Tbl 7c Household Type Pov200" <-
+    ctyreg_pums_count(filter(hh_df, poverty_200=="Yes"), "hh_type")
+  deep_pocket$"Tbl 7a Household Type Med Inc" <-
+    ctyreg_pums_median(hh_df, "HINCP", "hh_type")
+
+# Testing--Table 13 - Limited English Proficiency
+  deep_pocket$"Tbl 13a Pop 5yo+ x Eng only" <-
+    ctyreg_pums_count(filter(pp_df, AGEP>5), "eng_only")
+  deep_pocket$"Tbl 13b LEP personal def" <-
+    ctyreg_pums_count(filter(pp_df, AGEP>5), "lep")
+  deep_pocket$"Tbl 13c LEP hh def" <-
+    ctyreg_pums_count(pp_df, "LNGI")
+
+  # deep_pocket %<>% lapply(setDT)
+  # deep_pocket[1:4] %<>% lapply(selectvars)
+  # deep_pocket[c(1:4, 8:9, 11:12, 14:22)] %<>% lapply(pivot_counties)
   return(deep_pocket)
 }
 
