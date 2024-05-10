@@ -12,8 +12,7 @@ library(tidyr)
 year <- 2022
 acs_type <- "acs5"
 tables_needed <- c("DP05","DP02", "S1701")
-disability_poverty_table <- "H:/Projects/2024/Data Requests/04_29_2024 Sumner poc & seniors/sumner-dis-pov-2022.csv"
-export <- "H:/Projects/2024/Data Requests/04_29_2024 Sumner poc & seniors/sumner_by_tract_2022.csv"
+export <- "Y:/Demog Profile/2024/Data/Maps/equity_populations_bytract.csv"
 
 # Functions
 
@@ -120,3 +119,6 @@ for (pattern in c("^senior_", "^youth_", "^nhwhite_", "^poc_", "^dis_", "^lep_",
 
 # Rearrange dataframe columns
 data <- data[, selected_columns]
+
+# Export
+#write.csv(data, export)
