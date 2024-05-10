@@ -1,4 +1,4 @@
-# TITLE: Demographic Profile Mapping - % POC % youth % 65+ % in poverty % low income % with a disability
+# TITLE: Demographic Profile Mapping - % POC % youth % 65+ % in poverty % low income % with a disability % LEP
 # GEOGRAPHIES: Tract
 # DATA SOURCE: ACS Data
 # AUTHOR: Eric Clute
