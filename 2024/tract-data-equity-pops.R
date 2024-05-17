@@ -35,13 +35,13 @@ data <- raw %>%
          variable == "S1701_C01_001" | variable == "S1701_C02_001" | variable == "S1701_C03_001" |  # %below 100% poverty
          variable == "S1701_C01_042" # %below 200% poverty
          ) %>%
-  select(GEOID, name, variable, estimate, moe) %>%
+  select(GEOID, variable, estimate, moe) %>%
   pivot_wider(names_from = variable, values_from = c(estimate, moe)) %>%
-  rename(tract_age_pop_est = estimate_DP05_0001, tract_age_pop_moe = moe_DP05_0001,
-         tract_race_pop_est = estimate_DP05_0072, tract_race_pop_moe = moe_DP05_0072,
-         tract_dis_pop_est = estimate_DP02_0071, tract_dis_pop_moe = moe_DP02_0071,
-         tract_lep_pop_est = estimate_DP02_0112, tract_lep_pop_moe = moe_DP02_0112,
-         tract_pov_pop_est = estimate_S1701_C01_001, tract_pov_pop_moe = moe_S1701_C01_001,
+  rename(tract_pop_age_est = estimate_DP05_0001, tract_age_pop_moe = moe_DP05_0001,
+         tract_pop_race_est = estimate_DP05_0072, tract_race_pop_moe = moe_DP05_0072,
+         tract_pop_dis_est = estimate_DP02_0071, tract_dis_pop_moe = moe_DP02_0071,
+         tract_pop_lep_est = estimate_DP02_0112, tract_lep_pop_moe = moe_DP02_0112,
+         tract_pop_pov_est = estimate_S1701_C01_001, tract_pov_pop_moe = moe_S1701_C01_001,
          
          senior_pop_est = estimate_DP05_0024, senior_pop_moe = moe_DP05_0024,
          senior_prct_est = estimate_DP05_0024P,senior_prct_moe = moe_DP05_0024P,
@@ -61,42 +61,42 @@ data <- raw %>%
          pov100_prct_est = estimate_S1701_C03_001, pov100_prct_moe = moe_S1701_C03_001,
          
          pov200_pop_est = estimate_S1701_C01_042, pov200_pop_moe = moe_S1701_C01_042) %>%
-  mutate(poc_prct_est = 1 - nhwhite_pop_est/tract_race_pop_est,
-         poc_prct_moe = tidycensus::moe_prop(nhwhite_pop_est, tract_race_pop_est,
+  mutate(poc_prct_est = 1 - nhwhite_pop_est/tract_pop_race_est,
+         poc_prct_moe = tidycensus::moe_prop(nhwhite_pop_est, tract_pop_race_est,
                                              nhwhite_pop_moe, tract_race_pop_moe),
-         pov200_prct_est = pov200_pop_est / tract_pov_pop_est,
-         pov200_prct_moe = tidycensus::moe_prop(pov200_pop_est, tract_pov_pop_est,
+         pov200_prct_est = pov200_pop_est / tract_pop_pov_est,
+         pov200_prct_moe = tidycensus::moe_prop(pov200_pop_est, tract_pop_pov_est,
                                                 pov200_pop_moe, tract_pov_pop_moe)
          )
 
 # Calculate regional values, create percentages
 data <- data %>%
-  mutate(reg_age_pop_est = sum(tract_age_pop_est),
-         reg_race_pop_est = sum(tract_race_pop_est),
-         reg_dis_pop_est = sum(tract_dis_pop_est),
-         reg_lep_pop_est = sum(tract_lep_pop_est),
-         reg_pov_pop_est = sum(tract_pov_pop_est),
+  mutate(reg_total_pop_age = sum(tract_pop_age_est),
+         reg_total_pop_race = sum(tract_pop_race_est),
+         reg_total_pop_dis = sum(tract_pop_dis_est),
+         reg_total_pop_lep = sum(tract_pop_lep_est),
+         reg_total_pop_pov = sum(tract_pop_pov_est),
          
-         reg_senior_pop = sum(senior_pop_est),
-         reg_senior_prct = (reg_senior_pop / reg_age_pop_est),
+         reg_pop_senior = sum(senior_pop_est),
+         reg_prct_senior = (reg_pop_senior / reg_total_pop_age),
          
-         reg_youth_pop = sum(youth_pop_est),
-         reg_youth_prct = (reg_youth_pop / reg_age_pop_est),
+         reg_pop_youth = sum(youth_pop_est),
+         reg_prct_youth = (reg_pop_youth / reg_total_pop_age),
 
-         reg_poc_pop = reg_race_pop_est - (sum(nhwhite_pop_est)),
-         reg_poc_prct = (reg_poc_pop / reg_race_pop_est),
+         reg_pop_poc = reg_total_pop_race - (sum(nhwhite_pop_est)),
+         reg_prct_poc = (reg_pop_poc / reg_total_pop_race),
          
-         reg_dis_pop = sum(dis_pop_est),
-         reg_dis_prct = (reg_dis_pop / reg_dis_pop_est),
+         reg_pop_dis = sum(dis_pop_est),
+         reg_prct_dis = (reg_pop_dis / reg_total_pop_dis),
 
-         reg_lep_pop = sum(lep_pop_est),
-         reg_lep_prct = (reg_lep_pop / reg_lep_pop_est),
+         reg_pop_lep = sum(lep_pop_est),
+         reg_prct_lep = (reg_pop_lep / reg_total_pop_lep),
          
-         reg_pov100_pop = sum(pov100_pop_est),
-         reg_pov100_prct = (reg_pov100_pop / reg_pov_pop_est),
+         reg_pop_pov100 = sum(pov100_pop_est),
+         reg_prct_pov100 = (reg_pop_pov100 / reg_total_pop_pov),
          
-         reg_pov200_pop = sum(pov200_pop_est),
-         reg_pov200_prct = (reg_pov200_pop / reg_pov_pop_est)
+         reg_pop_pov200 = sum(pov200_pop_est),
+         reg_prct_pov200 = (reg_pop_pov200 / reg_total_pop_pov)
          )
 
 # Clean up percent data
@@ -112,8 +112,8 @@ data$pov100_prct_est <- (data$pov100_prct_est / 100)
 data$pov100_prct_moe <- (data$pov100_prct_moe / 100)
 
 # Extract column names that match the patterns
-selected_columns <- c("GEOID", "name")  # Initialize with non-grep columns
-for (pattern in c("^senior_", "^youth_", "^nhwhite_", "^poc_", "^dis_", "^lep_", "^pov100_", "^pov200_", "^tract_", "^reg_")) {
+selected_columns <- c("GEOID")  # Initialize with non-grep columns
+for (pattern in c("^senior_", "^youth_", "^nhwhite_", "^poc_", "^dis_", "^lep_", "^pov100_", "^pov200_", "^tract_", "^reg_total_", "^reg_pop_", "^reg_prct_")) {
   selected_columns <- c(selected_columns, grep(pattern, names(data), value = TRUE))
 }
 
@@ -121,4 +121,4 @@ for (pattern in c("^senior_", "^youth_", "^nhwhite_", "^poc_", "^dis_", "^lep_",
 data <- data[, selected_columns]
 
 # Export
-#write.csv(data, export)
+write.csv(data, export)
