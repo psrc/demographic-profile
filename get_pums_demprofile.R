@@ -396,5 +396,8 @@ write_dprofile_pums_xlsx <- function(result_list){
 
 
 # Example -------------
-# xtrastats <- get_pums_dp(2022)                         # Returns all tables as separate items in a list
-# write_dprofile_pums_xlsx(report_tables)                    # Write the tables to .xlsx
+# xtrastats <- get_pums_dp(2022)                          # Returns expanded tables as separate items in a list
+# write_dprofile_pums_xlsx(xtrastats)                     # Write the expanded tables to .xlsx
+# prettier <- format_for_report(xtrastats)                # Formats existing object (pivoting, asterisks, etc)
+# write_dprofile_pums_xlsx(prettier)                      # Write the structured tables to .xlsx (will overwrite, so rename prior write)
+
