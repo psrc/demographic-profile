@@ -110,19 +110,6 @@ ctyreg_pums_median <- function(so, stat_var, groupvars=NULL){                   
   return(rs)
 }
 
-# selectvars <- function(df,){                                                                        # Drop excess fields before pivot
-#   selectcols <- grep("(PRACE|COUNTY|count|share|median|moe)", names(df), value=TRUE)
-#   df %<>% setDT() %>% .[, ..selectcols]
-# }
-#
-# pivot_counties <- function(df){                                                                    # When counties are given, displayed horizontally
-#   df %<>% tidyr::pivot_wider(
-#             names_from = COUNTY,
-#             values_from = matches("(count|share|median|moe)", ignore.case=FALSE),
-#             names_sort = TRUE, names_vary = "slowest")
-#   return(df)
-# }
-
 format_county_stats <- function(df, group_vars=NULL, metric="share"){
   rdigits <- if(metric=="share"){3}else{0}
   if(is.na(group_vars)|is.null(group_vars)){group_vars <- NULL
@@ -209,22 +196,30 @@ get_pums_dp <- function(dyear){
 
 # Table 5 - Asian detail
   asian_detail <- list()
-  asian_detail$pop <- psrc_pums_count(filter(pp_df, PRACE=="Asian alone"),
-                         group_vars="asian_subgrp", rr="cv") %>%
+  asian_detail$pop <-
+    psrc_pums_count(filter(pp_df, PRACE=="Asian alone"),
+                    group_vars="asian_subgrp", rr="cv") %>%
     select(-any_of(contains("share")))
-  asian_detail$pov100 <- psrc_pums_count(filter(pp_df, PRACE=="Asian alone"),
-                            group_vars=c("asian_subgrp", "poverty_100"), incl_na=FALSE, rr="cv") %>%
-    filter(poverty_100=="Yes") %>% select(-c(poverty_100, count, count_moe)) %>%
+  asian_detail$pov100 <-
+    psrc_pums_count(filter(pp_df, PRACE=="Asian alone"),
+                    group_vars=c("asian_subgrp", "poverty_100"),
+                    incl_na=FALSE, rr="cv") %>%
+    filter(poverty_100=="Yes") %>%
+    select(-c(poverty_100, count, count_moe)) %>%
     rename_at(vars(matches("share|moe|cv")), ~ paste0("pov_", .x, recycle0 = TRUE))
-  asian_detail$pov200 <- psrc_pums_count(filter(pp_df, PRACE=="Asian alone"),
-                            group_vars=c("asian_subgrp", "poverty_200"), incl_na=FALSE, rr="cv") %>%
-    filter(poverty_200=="Yes") %>% select(-c(poverty_200, count, count_moe)) %>%
+  asian_detail$pov200 <-
+    psrc_pums_count(filter(pp_df, PRACE=="Asian alone"),
+                    group_vars=c("asian_subgrp", "poverty_200"), incl_na=FALSE, rr="cv") %>%
+    filter(poverty_200=="Yes") %>%
+    select(-c(poverty_200, count, count_moe)) %>%
     rename_at(vars(matches("share|moe|cv")), ~ paste0("lowinc_", .x, recycle0 = TRUE))
-  asian_detail$inc <- psrc_pums_median(filter(pp_df, PRACE=="Asian alone"), "HINCP",
-                            group_vars="asian_subgrp", incl_na=FALSE, rr="cv") %>%
+  asian_detail$inc <-
+    psrc_pums_median(filter(pp_df, PRACE=="Asian alone"), "HINCP",
+                     group_vars="asian_subgrp", incl_na=FALSE, rr="cv") %>%
     rename(HINCP_median_cv=cv)
   xtrastats$"Tbl 5 Asian Detail" <-
-    Reduce(function(x, y) merge(x, y, by="asian_subgrp"), lapply(asian_detail, select, -c("DATA_YEAR","COUNTY")))
+    Reduce(function(x, y) merge(x, y, by="asian_subgrp"),
+           lapply(asian_detail, select, -c("DATA_YEAR","COUNTY")))
 
 # Table 6 - Poverty, Race & Sex
   xtrastats$"Tbl 6 Pov Race-Hisp Sex 100" <-
@@ -236,11 +231,14 @@ get_pums_dp <- function(dyear){
 
 # Table 7 - Household Type
   xtrastats$"Tbl 7 Household Type Summary" <-
-    ctyreg_pums_count(hh_df, "hh_type") %>% select(-any_of(contains("share", ignore.case = FALSE)))
+    ctyreg_pums_count(hh_df, "hh_type") %>%
+    select(-any_of(contains("share", ignore.case = FALSE)))
   xtrastats$"Tbl 7 Household Type Pov100" <-
-    ctyreg_pums_count(hh_df, c("hh_type","poverty_100")) %>% filter(poverty_100=="Yes")
+    ctyreg_pums_count(hh_df, c("hh_type","poverty_100")) %>%
+    filter(poverty_100=="Yes")
   xtrastats$"Tbl 7 Household Type Pov200" <-
-    ctyreg_pums_count(hh_df, c("hh_type","poverty_200")) %>% filter(poverty_200=="Yes")
+    ctyreg_pums_count(hh_df, c("hh_type","poverty_200")) %>%
+    filter(poverty_200=="Yes")
   xtrastats$"Tbl 7 Household Type Med Inc" <-
     ctyreg_pums_median(hh_df, "HINCP", "hh_type")
 
@@ -248,41 +246,54 @@ get_pums_dp <- function(dyear){
   xtrastats$"Tbl 8 Total Count" <- copy(xtrastats$"Tbl 0 Total Count")
   xtrastats$"Tbl 8 Poverty Share" <- copy(xtrastats$"Tbl 0 Poverty Share")
   xtrastats$"Tbl 8 Pov65+ Summary" <-
-    ctyreg_pums_count(filter(pp_df, age_group=="65+"), "poverty_100") %>% filter_poverty_level(100)
+    ctyreg_pums_count(filter(pp_df, age_group=="65+"), "poverty_100") %>%
+    filter_poverty_level(100)
   xtrastats$"Tbl 8 Pov65+ Age Detail" <-
-    ctyreg_pums_count(filter(pp_df, age_group=="65+"), c("age_detail", "poverty_100")) %>% filter_poverty_level(100)
+    ctyreg_pums_count(filter(pp_df, age_group=="65+"), c("age_detail", "poverty_100")) %>%
+    filter_poverty_level(100)
   xtrastats$"Tbl 8 Pov65+ Race" <-
-    psrc_pums_count(filter(pp_df, age_group=="65+"), group_vars=c("PRACE","poverty_100"), rr="cv") %>% filter_poverty_level(100)
+    psrc_pums_count(filter(pp_df, age_group=="65+"), group_vars=c("PRACE","poverty_100"), rr="cv") %>%
+    filter_poverty_level(100)
   xtrastats$"Tbl 8 LowInc Share" <- copy(xtrastats$"Tbl 0 LowInc Share")
   xtrastats$"Tbl 8 LowInc65+ Summary" <-
-    ctyreg_pums_count(filter(pp_df, age_group=="65+"), "poverty_200") %>% filter_poverty_level(200)
+    ctyreg_pums_count(filter(pp_df, age_group=="65+"), "poverty_200") %>%
+    filter_poverty_level(200)
   xtrastats$"Tbl 8 LowInc65+ Age Detail" <-
-    ctyreg_pums_count(filter(pp_df, age_group=="65+"), c("age_detail", "poverty_200")) %>% filter_poverty_level(200)
+    ctyreg_pums_count(filter(pp_df, age_group=="65+"), c("age_detail", "poverty_200")) %>%
+    filter_poverty_level(200)
   xtrastats$"Tbl 8 LowInc65+ Race" <-
-    psrc_pums_count(filter(pp_df, age_group=="65+"), group_vars=c("PRACE","poverty_200"), rr="cv") %>% filter_poverty_level(200)
+    psrc_pums_count(filter(pp_df, age_group=="65+"), group_vars=c("PRACE","poverty_200"), rr="cv") %>%
+    filter_poverty_level(200)
 
 # Table 9 - Ages < 18
   xtrastats$"Tbl 9 Total Count" <- copy(xtrastats$"Tbl 0 Total Count")
   xtrastats$"Tbl 9 Poverty Share" <- copy(xtrastats$"Tbl 0 Poverty Share")
   xtrastats$"Tbl 9 Pov<18 Summary" <-
-    ctyreg_pums_count(filter(pp_df, age_group=="< 18"), c("poverty_100"))  %>% filter_poverty_level(100)
+    ctyreg_pums_count(filter(pp_df, age_group=="< 18"), c("poverty_100")) %>%
+    filter_poverty_level(100)
   xtrastats$"Tbl 9 Pov<18 Age Detail" <-
-    ctyreg_pums_count(filter(pp_df, age_group=="< 18"), c("age_detail","poverty_100")) %>% filter_poverty_level(100)
+    ctyreg_pums_count(filter(pp_df, age_group=="< 18"), c("age_detail","poverty_100")) %>%
+    filter_poverty_level(100)
   xtrastats$"Tbl 9 Pov<18 Race" <-
-    psrc_pums_count(filter(pp_df, age_group=="< 18"), group_vars=c("PRACE","poverty_100"), rr="cv") %>% filter_poverty_level(100)
+    psrc_pums_count(filter(pp_df, age_group=="< 18"), group_vars=c("PRACE","poverty_100"), rr="cv") %>%
+    filter_poverty_level(100)
   xtrastats$"Tbl 9 LowInc Share" <- copy(xtrastats$"Tbl 0 LowInc Share")
   xtrastats$"Tbl 9 Lowinc<18 Summary" <-
-    ctyreg_pums_count(filter(pp_df, age_group=="< 18"), c("poverty_200"))  %>% filter_poverty_level(200)
+    ctyreg_pums_count(filter(pp_df, age_group=="< 18"), c("poverty_200")) %>%
+    filter_poverty_level(200)
   xtrastats$"Tbl 9 Lowinc<18 Age Detail" <-
-    ctyreg_pums_count(filter(pp_df, age_group=="< 18"), c("age_detail","poverty_200")) %>% filter_poverty_level(200)
+    ctyreg_pums_count(filter(pp_df, age_group=="< 18"), c("age_detail","poverty_200")) %>%
+    filter_poverty_level(200)
   xtrastats$"Tbl 9 Lowinc<18 Race" <-
-    psrc_pums_count(filter(pp_df, age_group=="< 18"), group_vars=c("PRACE","poverty_200"), rr="cv") %>% filter_poverty_level(200)
+    psrc_pums_count(filter(pp_df, age_group=="< 18"), group_vars=c("PRACE","poverty_200"), rr="cv") %>%
+    filter_poverty_level(200)
 
 # Table 10 - Disability status
   xtrastats$"Tbl 10 Total Count" <- copy(xtrastats$"Tbl 0 Total Count")
   xtrastats$"Tbl 10 Poverty Share" <- copy(xtrastats$"Tbl 0 Poverty Share")
   xtrastats$"Tbl 10 PovDisab Summary" <-
-    ctyreg_pums_count(filter(pp_df, grepl("^With ", as.character(DIS))), c("poverty_100"))  %>% filter_poverty_level(100)
+    ctyreg_pums_count(filter(pp_df, grepl("^With ", as.character(DIS))), c("poverty_100")) %>%
+    filter_poverty_level(100)
   xtrastats$"Tbl 10 PovDisab Age 5-17" <-
     ctyreg_pums_count(filter(pp_df, age_detail=="5-17"), c("DIS","poverty_100")) %>%
     filter_poverty_level(100) %>% filter(grepl("^With ", as.character(DIS)))
@@ -294,7 +305,8 @@ get_pums_dp <- function(dyear){
     filter_poverty_level(100)
   xtrastats$"Tbl 10 LowInc Share" <- copy(xtrastats$"Tbl 0 LowInc Share")
   xtrastats$"Tbl 10 LowincDisab Summary" <-
-    ctyreg_pums_count(filter(pp_df, grepl("^With ", as.character(DIS))), c("poverty_200"))  %>% filter_poverty_level(200)
+    ctyreg_pums_count(filter(pp_df, grepl("^With ", as.character(DIS))), c("poverty_200")) %>%
+    filter_poverty_level(200)
   xtrastats$"Tbl 10 LowIncDisab Age 5-17" <-
     ctyreg_pums_count(filter(pp_df, age_detail=="5-17"), c("DIS","poverty_200")) %>%
     filter_poverty_level(200) %>% filter(grepl("^With ", as.character(DIS)))
@@ -310,15 +322,20 @@ get_pums_dp <- function(dyear){
   xtrastats$"Tbl 11 No Veh Summary" <-
     ctyreg_pums_count(hh_df, "zero_veh") %>% filter(zero_veh=="Yes")
   xtrastats$"Tbl 11 No Veh POC" <-
-    ctyreg_pums_count(filter(hh_df, HRACE!="White alone"), "zero_veh") %>% filter(zero_veh=="Yes") ## respondent version: hhpoc <- ctyreg_pums_count(filter(hh_df, PRACE!="White alone"), "zero_veh")
+    ctyreg_pums_count(filter(hh_df, HRACE!="White alone"), "zero_veh") %>%
+    filter(zero_veh=="Yes") ## respondent version: hhpoc <- ctyreg_pums_count(filter(hh_df, PRACE!="White alone"), "zero_veh")
   xtrastats$"Tbl 11 No Veh Pov" <-
-    ctyreg_pums_count(filter(hh_df, poverty_100=="Yes"), "zero_veh") %>% filter(zero_veh=="Yes")
+    ctyreg_pums_count(filter(hh_df, poverty_100=="Yes"), "zero_veh") %>%
+    filter(zero_veh=="Yes")
   xtrastats$"Tbl 11 No Veh LowInc" <-
-    ctyreg_pums_count(filter(hh_df, poverty_200=="Yes"), "zero_veh") %>% filter(zero_veh=="Yes")
+    ctyreg_pums_count(filter(hh_df, poverty_200=="Yes"), "zero_veh") %>%
+    filter(zero_veh=="Yes")
   xtrastats$"Tbl 11 No Veh 65+" <-
-    ctyreg_pums_count(filter(hh_df, stringr::str_detect(R65, "^\\d ")), "zero_veh") %>% filter(zero_veh=="Yes")  ## respondent version: hh65 <- ctyreg_pums_count(filter(hh_df, age_group=="65+"), "zero_veh")
+    ctyreg_pums_count(filter(hh_df, stringr::str_detect(R65, "^\\d ")), "zero_veh") %>%
+    filter(zero_veh=="Yes")  ## respondent version: hh65 <- ctyreg_pums_count(filter(hh_df, age_group=="65+"), "zero_veh")
   xtrastats$"Tbl 11 No Veh Dis" <-
-    ctyreg_pums_count(filter(hh_df, stringr::str_detect(HDIS, "^With ")), "zero_veh") %>% filter(zero_veh=="Yes")  ## hhdis <- ctyreg_pums_count(filter(hh_df, stringr::str_detect(DIS, "^With "), "zero_veh")
+    ctyreg_pums_count(filter(hh_df, stringr::str_detect(HDIS, "^With ")), "zero_veh") %>%
+    filter(zero_veh=="Yes")  ## hhdis <- ctyreg_pums_count(filter(hh_df, stringr::str_detect(DIS, "^With "), "zero_veh")
 
 # Table 12 - Common Non-English Languages
   xtrastats$"Tbl 12 Common Languages" <-
@@ -393,11 +410,8 @@ write_dprofile_pums_xlsx <- function(result_list){
   return(invisible(NULL))
 }
 
-
-
 # Example -------------
 # xtrastats <- get_pums_dp(2022)                          # Returns expanded tables as separate items in a list
 # write_dprofile_pums_xlsx(xtrastats)                     # Write the expanded tables to .xlsx
 # prettier <- format_for_report(xtrastats)                # Formats existing object (pivoting, asterisks, etc)
 # write_dprofile_pums_xlsx(prettier)                      # Write the structured tables to .xlsx (will overwrite, so rename prior write)
-
