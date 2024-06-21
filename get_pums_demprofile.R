@@ -78,11 +78,11 @@ add_pp_vars <- function(df){
                 TRUE ~ NA_character_)),
     lep = factor(
       case_when(AGEP<5 ~ NA_character_,
-                stringr::str_detect(ENG, "^Very") ~"No",
-                !is.na(ENG) ~ "Yes")),
+                stringr::str_detect(ENG, "^Very") ~"Speak English 'very well'",
+                !is.na(ENG) ~ "Speak English less than 'very well'")),
     eng_only=factor(
-      case_when(is.na(LANP) ~ "Yes",
-                TRUE ~ "No")))
+      case_when(is.na(LANP) ~ "Speak English 'very well'",
+                TRUE ~ "Speak English less than 'very well'")))
 }
 
 add_hh_vars <- function(df){
@@ -462,8 +462,8 @@ get_pums_dp <- function(dyear){
     slice_max(order_by=share, n=12, by=COUNTY, na_rm=TRUE)                                    # Selecting top 12 per geography
 
 # Table 13 - Limited English Proficiency
-  xtrastats$"Tbl 13a Pop 5yo+ x Eng only" <-
-    ctyreg_pums_count(filter(pp_df, AGEP>5), "eng_only")
+  xtrastats$"Tbl 13a Pop 5yo+ x LEP" <-
+    ctyreg_pums_count(filter(pp_df, AGEP>5), "lep")
 
 # Table 14 - Regional LEP by Language Spoken
   lep_languages <- psrc_pums_count(filter(pp_df, lep=="Yes"), group_vars="LANP") %>%          # First pull to choose languages
@@ -516,7 +516,7 @@ format_for_report <- function(xtrastats){
       combine_tbl_elements("Tbl 11", group_varlist=rep(NA, 10),
                                     metric_list=c("count", rep("share", 9)))
     report_tables$"Tbl 12 Common Languages" <- xtrastats$"Tbl 12 Common Languages"
-    report_tables$"Tbl 13 Limited English" <- xtrastats$"Tbl 13a Pop 5yo+ x Eng only"
+    report_tables$"Tbl 13 Limited English" <- xtrastats$"Tbl 13a Pop 5yo+ x LEP"
     report_tables$"Tbl 14 LEP Languages" <- xtrastats$"Tbl 14 LEP Languages"
 
     return(report_tables)
