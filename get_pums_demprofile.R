@@ -47,35 +47,36 @@ asian_regex <- paste0(
 
 # 2. Setup: Helper functions ----------------------------------------
 
-add_poverty_vars <- function(df){
-  df %<>% mutate(poverty_100 = case_when(is.na(POVPIP) ~ NA_character_,
-                                         POVPIP<100 ~ "Yes",
-                                         TRUE ~ "No"),
-                 poverty_200 = case_when(is.na(POVPIP) ~ NA_character_,
-                                         POVPIP<200 ~ "Yes",
-                                         TRUE ~ "No"))
+add_shared_vars <- function(df){
+  df %<>% mutate(
+     poverty_100 = case_when(is.na(POVPIP) ~ NA_character_,
+                             POVPIP<100 ~ "Yes",
+                             TRUE ~ "No"),
+     poverty_200 = case_when(is.na(POVPIP) ~ NA_character_,
+                             POVPIP<200 ~ "Yes",
+                             TRUE ~ "No"),
+     age_group = factor(
+       case_when(is.na(AGEP) ~ NA_character_,
+                 AGEP>64 ~ "65+",
+                 AGEP<18 ~ "< 18",
+                 TRUE ~ "18-64")),
+     age_detail = factor(
+       case_when(is.na(AGEP) ~ NA_character_,
+                 between(AGEP,65,84) ~ "65-84",
+                 between(AGEP,5,17)  ~ "5-17",
+                 AGEP < 4 ~ "0-4",
+                 AGEP > 84 ~ "85+",
+                 TRUE ~ "18-64")),
+     asian_subgrp = factor(
+       case_when(PRACE!="Asian alone" ~ NA_character_,
+                 PRACE=="Asian alone" &
+                   grepl(!!asian_regex, as.character(RAC2P)) ~ as.character(RAC2P),
+                 PRACE=="Asian alone" ~ "Other Asian",
+                 TRUE ~ NA_character_)))
 }
 
 add_pp_vars <- function(df){
   df %<>% mutate(
-    age_group = factor(
-      case_when(is.na(AGEP) ~ NA_character_,
-                AGEP>64 ~ "65+",
-                AGEP<18 ~ "< 18",
-                TRUE ~ "18-64")),
-    age_detail = factor(
-      case_when(is.na(AGEP) ~ NA_character_,
-                between(AGEP,65,84) ~ "65-84",
-                between(AGEP,5,17)  ~ "5-17",
-                AGEP < 4 ~ "0-4",
-                AGEP > 84 ~ "85+",
-                TRUE ~ "18-64")),
-    asian_subgrp = factor(
-      case_when(PRACE!="Asian alone" ~ NA_character_,
-                PRACE=="Asian alone" &
-                  grepl(!!asian_regex, as.character(RAC2P)) ~ as.character(RAC2P),
-                PRACE=="Asian alone" ~ "Other Asian",
-                TRUE ~ NA_character_)),
     lep = factor(
       case_when(AGEP<5 ~ NA_character_,
                 stringr::str_detect(ENG, "^Very") ~"Speak English 'very well'",
@@ -87,24 +88,6 @@ add_pp_vars <- function(df){
 
 add_hh_vars <- function(df){
   df %<>% mutate(
-    age_group = factor(
-      case_when(is.na(AGEP) ~ NA_character_,
-                AGEP>64 ~ "65+",
-                AGEP<18 ~ "< 18",
-                TRUE ~ "18-64")),
-    age_detail = factor(
-      case_when(is.na(AGEP) ~ NA_character_,
-                between(AGEP,65,84) ~ "65-84",
-                between(AGEP,5,17)  ~ "5-17",
-                AGEP < 4 ~ "0-4",
-                AGEP > 84 ~ "85+",
-                TRUE ~ "18-64")),
-    asian_subgrp = factor(
-      case_when(PRACE!="Asian alone" ~ NA_character_,
-                PRACE=="Asian alone" &
-                  grepl(!!asian_regex, as.character(RAC2P)) ~ as.character(RAC2P),
-                PRACE=="Asian alone" ~ "Other Asian",
-                TRUE ~ NA_character_)),
     zero_veh=factor(
       case_when(grepl("^No ", as.character(VEH)) ~"Yes",
                 grepl("^\\d ", as.character(VEH)) ~"No",
@@ -138,12 +121,12 @@ format_county_stats <- function(df, group_vars=NULL, metric="share"){
   dt <- copy(df) %>% setDT() %>%
     .[, which(grepl(metric, colnames(.))):=lapply(.SD, round, rdigits),
       .SDcols=grepl(metric, colnames(.))] %>%
-      .[, `:=`(value=get(metric), moe=get(paste0(metric,"_moe")))] %>%
-      .[, `:=`(COUNTY=factor(case_when(COUNTY!="Region" ~ paste(COUNTY, "County"),
-                                 COUNTY=="Region" ~ "Central Puget Sound")),
-               value=case_when(((moe/1.645)/value) > 0.5 ~ "**",
-                            ((moe/1.645)/value) > 0.3 ~ paste("***", value),
-                            TRUE ~ as.character(value)))] %>%
+    .[, `:=`(value=get(metric), moe=get(paste0(metric,"_moe")))] %>%
+    .[, `:=`(COUNTY=factor(case_when(COUNTY!="Region" ~ paste(COUNTY, "County"),
+                                     COUNTY=="Region" ~ "Central Puget Sound")),
+             value=case_when(((moe/1.645)/value) > 0.5 ~ "**",
+                             ((moe/1.645)/value) > 0.3 ~ paste("***", value),
+                             TRUE ~ as.character(value)))] %>%
     .[, ..selectcols] %>% setcolorder(c(group_vars, "COUNTY")) %>%
     tidyr::pivot_wider(
     names_from = COUNTY,
@@ -178,8 +161,8 @@ get_pums_dp <- function(dyear){
   pp_df <- get_psrc_pums(5, dyear, "p", pvars, dir=pums_rds)                                  # Retrieve persons data
   hh_df <- get_psrc_pums(5, dyear, "h", hvars, dir=pums_rds)                                  # Retrieve household data
 
-  pp_df %<>% add_poverty_vars() %>% add_pp_vars()
-  hh_df %<>% add_poverty_vars() %>% add_hh_vars()
+  pp_df %<>% add_shared_vars() %>% add_pp_vars()
+  hh_df %<>% add_shared_vars() %>% add_hh_vars()
 
   xtrastats <- list()                                                                         # List will contain all tables
 
