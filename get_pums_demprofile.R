@@ -79,8 +79,8 @@ add_pp_vars <- function(df){
   df %<>% mutate(
     lep = factor(
       case_when(AGEP<5 ~ NA_character_,
-                stringr::str_detect(ENG, "^Very") ~"Speak English 'very well'",
-                !is.na(ENG) ~ "Speak English less than 'very well'")),
+                !stringr::str_detect(ENG, "^Very") ~"Speak English less than 'very well'",
+                TRUE ~ "Speak English 'very well'")),
     eng_only=factor(
       case_when(is.na(LANP) ~ "Speak English 'very well'",
                 TRUE ~ "Speak English less than 'very well'")))
