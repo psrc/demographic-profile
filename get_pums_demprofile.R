@@ -192,22 +192,34 @@ get_pums_dp <- function(dyear){
     ctyreg_pums_count(filter(pp_df, PRACE!="White alone"), "poverty_200") %>%
     filter_poverty_level(200) %>% mutate(PRACE="POC total")
 
-# Table 4 - Median household income
+# Table 4a - Median HH income HRACE
   MedInc_POC_HRACE <-
     ctyreg_pums_median(filter(hh_df, HRACE!="White alone"), stat_var="HINCP") %>%
     rename_with(.fn= ~stringr::str_replace(., "HINCP_",""), .cols=contains("HINCP")) %>%
-    mutate(PRACE="POC total - Household")
+    mutate(HRACE="POC total - Household")
+  xtrastats$"Tbl 4a MedInc Race-Hisp" <-
+    ctyreg_pums_median(hh_df, stat_var="HINCP", c("HRACE")) %>%
+    rename_with(.fn= ~stringr::str_replace(., "HINCP_",""), .cols=contains("HINCP")) %>%
+    rbind(MedInc_POC_HRACE)
+  xtrastats$"Tbl 4a Ratio to Reg MedInc" <-
+    ctyreg_pums_median(hh_df, stat_var="HINCP") %>%
+    inner_join(select(xtrastats$"Tbl 4a MedInc Race-Hisp",-cv), by = join_by(COUNTY,DATA_YEAR)) %>%
+    mutate(share=median/HINCP_median,
+           share_moe=tidycensus::moe_prop(median, HINCP_median, median_moe, HINCP_median_moe)) %>%
+    select(-any_of(contains("median")))
+
+# Table 4b - Median HH income PRACE
   MedInc_POC_PRACE <-
     ctyreg_pums_median(filter(hh_df, PRACE!="White alone"), stat_var="HINCP") %>%
     rename_with(.fn= ~stringr::str_replace(., "HINCP_",""), .cols=contains("HINCP")) %>%
     mutate(PRACE="POC total - Respondent")
-  xtrastats$"Tbl 4 MedInc Race-Hisp" <-
+  xtrastats$"Tbl 4b MedInc Race-Hisp" <-
     ctyreg_pums_median(hh_df, stat_var="HINCP", c("PRACE")) %>%
     rename_with(.fn= ~stringr::str_replace(., "HINCP_",""), .cols=contains("HINCP")) %>%
-    rbind(MedInc_POC_HRACE, MedInc_POC_PRACE)
-  xtrastats$"Tbl 4 Ratio to Reg MedInc" <-
+    rbind(MedInc_POC_PRACE)
+  xtrastats$"Tbl 4b Ratio to Reg MedInc" <-
     ctyreg_pums_median(hh_df, stat_var="HINCP") %>%
-    inner_join(select(xtrastats$"Tbl 4 MedInc Race-Hisp",-cv), by = join_by(COUNTY,DATA_YEAR)) %>%
+    inner_join(select(xtrastats$"Tbl 4b MedInc Race-Hisp",-cv), by = join_by(COUNTY,DATA_YEAR)) %>%
     mutate(share=median/HINCP_median,
            share_moe=tidycensus::moe_prop(median, HINCP_median, median_moe, HINCP_median_moe)) %>%
     select(-any_of(contains("median")))
@@ -240,6 +252,7 @@ get_pums_dp <- function(dyear){
     rename(HINCP_PRACE_median=HINCP_median) %>%
     rename(HINCP_median_cv=cv)
   asians <- Reduce(function(x, y) merge(x, y, by=c("DATA_YEAR","COUNTY")), asian) %>%
+    select(-c("DATA_YEAR","COUNTY")) %>% mutate(asian_subgrp="Total: All Asians")
 
   asian_detail <- list()
   asian_detail$pop <-
@@ -286,35 +299,34 @@ get_pums_dp <- function(dyear){
   xtrastats$"Tbl 6 LowInc POC Sex 200" <-
     psrc_pums_count(filter(pp_df, PRACE!="White alone"), group_vars=c("SEX","poverty_200"), rr="cv") %>%
     filter_poverty_level(200) %>% mutate(PRACE="POC Total")
-  filter(hh_df, PRACE!="White alone")
 
 # Table 7 - Household Type
-  xtrastats$"Tbl 7 Household Type Summary" <-
+  xtrastats$"Tbl 7 HH Type Summary" <-
     ctyreg_pums_count(hh_df, "hh_type") %>%
     select(-any_of(contains("share", ignore.case = FALSE)))
-  xtrastats$"Tbl 7 Household Type Pov100" <-
+  xtrastats$"Tbl 7 HH Type Pov100" <-
     ctyreg_pums_count(hh_df, c("hh_type","poverty_100")) %>%
     filter(poverty_100=="Yes")
-  xtrastats$"Tbl 7 Household Type Pov100 HPOC" <-
+  xtrastats$"Tbl 7 HH Type Pov100 HPOC" <-
     ctyreg_pums_count(filter(hh_df, HRACE!="White alone"), c("hh_type","poverty_100")) %>%
     filter(poverty_100=="Yes")
-  xtrastats$"Tbl 7 Household Type Pov100 PPOC" <-
+  xtrastats$"Tbl 7 HH Type Pov100 PPOC" <-
     ctyreg_pums_count(filter(hh_df, PRACE!="White alone"), c("hh_type","poverty_100")) %>%
     filter(poverty_100=="Yes")
-  xtrastats$"Tbl 7 Household Type Pov200" <-
+  xtrastats$"Tbl 7 HH Type Pov200" <-
     ctyreg_pums_count(hh_df, c("hh_type","poverty_200")) %>%
     filter(poverty_200=="Yes")
-  xtrastats$"Tbl 7 Household Type Pov200 HPOC" <-
+  xtrastats$"Tbl 7 HH Type Pov200 HPOC" <-
     ctyreg_pums_count(filter(hh_df, HRACE!="White alone"), c("hh_type","poverty_200")) %>%
     filter(poverty_200=="Yes")
-  xtrastats$"Tbl 7 Household Type Pov200 PPOC" <-
+  xtrastats$"Tbl 7 HH Type Pov200 PPOC" <-
     ctyreg_pums_count(filter(hh_df, PRACE!="White alone"), c("hh_type","poverty_200")) %>%
     filter(poverty_200=="Yes")
-  xtrastats$"Tbl 7 Household Type Med Inc" <-
+  xtrastats$"Tbl 7 HH Type Med Inc" <-
     ctyreg_pums_median(hh_df, "HINCP", "hh_type")
-  xtrastats$"Tbl 7 Household Type Med Inc HPOC" <-
+  xtrastats$"Tbl 7 HH Type Med Inc HPOC" <-
     ctyreg_pums_median(filter(hh_df, HRACE!="White alone"), "HINCP", "hh_type")
-  xtrastats$"Tbl 7 Household Type Med Inc PPOC" <-
+  xtrastats$"Tbl 7 HH Type Med Inc PPOC" <-
     ctyreg_pums_median(filter(hh_df, PRACE!="White alone"), "HINCP", "hh_type")
 
 # Table 8 - Ages 65+
@@ -449,19 +461,46 @@ get_pums_dp <- function(dyear){
     ctyreg_pums_count(filter(pp_df, AGEP>5), "lep")
 
 # Table 14 - Regional LEP by Language Spoken
-  lep_languages <- psrc_pums_count(filter(pp_df, lep=="Yes"), group_vars="LANP") %>%          # First pull to choose languages
-    filter(LANP!="Total" & (count + count_moe) > 5000) %>% pull(LANP) %>%                     # -- to enable LEP share per language
-    as.character() %>% unique()
+  lep_languages <- psrc_pums_count(filter(pp_df, grepl("less than",lep)),
+                                   group_vars="LANP") %>%                                     # First pull to choose languages
+    filter(LANP!="Total" & (count + count_moe) > 5000) %>%                                    # -- to enable LEP share per language
+    pull(LANP) %>% as.character() %>% unique()
   lep_stats <- filter(pp_df, AGEP>=5 & LANP %in% lep_languages) %>%
-    psrc_pums_count(group_vars=c("LANP","lep")) %>% filter(LANP!="Total" & lep!="No") %>%     # LEP share per language
+    psrc_pums_count(group_vars=c("LANP","lep")) %>%
+    filter(LANP!="Total" & lep!="Speak English 'very well'") %>%                              # LEP share per language
     split(f=.$lep) %>% lapply(select,-lep)
   lep_stats$Total %<>% select(-contains("share")) %>%
     rename_with(~ paste0("total_", .x, recycle0 = TRUE),
     starts_with("count", ignore.case=FALSE))
-  lep_stats$Yes %<>% rename_with(~ paste0("lep_", .x, recycle0 = TRUE),
+  lep_stats$`Speak English less than 'very well'` %<>%
+    rename_with(~ paste0("lep_", .x, recycle0 = TRUE),
                 matches("count|share", ignore.case=FALSE))
   xtrastats$"Tbl 14 LEP Languages" <-
-    inner_join(lep_stats$Total, lep_stats$Yes, by=c("LANP","DATA_YEAR","COUNTY")) %>%
+    inner_join(lep_stats$Total, lep_stats$`Speak English less than 'very well'`,
+               by=c("LANP","DATA_YEAR","COUNTY")) %>%
+    arrange(desc(lep_count)) %>%
+    rename_with(.fn= ~paste0(.,"_values"), .cols=matches("(count|share)$")) %>%
+    tidyr::pivot_longer(cols=matches("(values|moe)$"),                                        # This results in the right table structure
+             names_to = c("metric", ".value"),                                                # -- although R displays counts & shares
+             names_pattern = "(.*_)(values|moe)$")                                            # -- with identical numeric format, e.g. decimal places
+
+# Table 15 - Additional stats by largest non-English population total                         # Extra context added last                                        # -- to enable LEP share per language
+  lep_languages2 <- psrc_pums_count(pp_df, group_vars="LANP") %>%                             # First pull to choose languages
+    filter(LANP!="Total" & (count + count_moe) > 10000) %>% pull(LANP) %>%                    # -- to enable LEP share per language
+    as.character() %>% unique()
+  lep_stats2 <- filter(pp_df, AGEP>=5 & LANP %in% lep_languages2) %>%
+    psrc_pums_count(group_vars=c("LANP","lep")) %>%
+    filter(LANP!="Total" & lep!="Speak English 'very well'") %>%                              # LEP share per language
+    split(f=.$lep) %>% lapply(select,-lep)
+  lep_stats2$Total %<>% select(-contains("share")) %>%
+    rename_with(~ paste0("total_", .x, recycle0 = TRUE),
+                starts_with("count", ignore.case=FALSE))
+  lep_stats2$"Speak English less than 'very well'" %<>%
+    rename_with(~ paste0("lep_", .x, recycle0 = TRUE),
+                matches("count|share", ignore.case=FALSE))
+  xtrastats$"Tbl 15 Non-English Languages" <-
+    inner_join(lep_stats2$Total, lep_stats2$"Speak English less than 'very well'",
+               by=c("LANP","DATA_YEAR","COUNTY")) %>%
     arrange(desc(lep_count)) %>%
     rename_with(.fn= ~paste0(.,"_values"), .cols=matches("(count|share)$")) %>%
     tidyr::pivot_longer(cols=matches("(values|moe)$"),                                        # This results in the right table structure
@@ -473,34 +512,38 @@ get_pums_dp <- function(dyear){
 
 format_for_report <- function(xtrastats){
     report_tables <- list()
-    report_tables$"Tbl 3 Pov-LowInc Race-Hisp" <-
+    report_tables$"Tbl3 Pov-LowInc Race-Hisp" <-
       combine_tbl_elements(rgx="Tbl 3", group_varlist=c(NA, NA, "PRACE", "PRACE", NA, "PRACE"),
                                     metric_list = c("count", rep.int("share",5)))
-    report_tables$"Tbl 4 Med Inc Race-Hisp" <-
-      combine_tbl_elements("Tbl 4", group_varlist=rep.int("PRACE",2),
+    report_tables$"Tbl4a Med Inc Race-Hisp" <-
+      combine_tbl_elements("Tbl 4a", group_varlist=rep.int("HRACE",2),
                                     metric_list=c("median","share"))
-    report_tables$"Tbl 5 Asian Detail" <- xtrastats$"Tbl 5 Asian Detail" %>% select(-any_of(contains("cv")))
-    report_tables$"Tbl 6 Pov-LowInc Race-Hisp Sex" <-
+    report_tables$"Tbl4b Med Inc Race-Hisp" <-
+      combine_tbl_elements("Tbl 4b", group_varlist=rep.int("PRACE",2),
+                           metric_list=c("median","share"))
+    report_tables$"Tbl5 Asian Detail" <- xtrastats$"Tbl 5 Asian Detail" %>% select(-any_of(contains("cv")))
+    report_tables$"Tbl6 Pov-LowInc Race Sex" <-
       combine_tbl_elements("Tbl 6", group_varlist="PRACE;SEX",
-                                    metric_list=rep("share",4))
-    report_tables$"Tbl 7 HH Type" <-
+                           metric_list=rep("share",4))
+    report_tables$"Tbl7 HH Type" <-
       combine_tbl_elements("Tbl 7", group_varlist=rep("hh_type", 10),
                            metric_list=c("count",rep("share",6), rep("HINCP_median",3)))
-    report_tables$"Tbl 8 Pov-LowInc 65+" <-
+    report_tables$"Tbl8 Pov-LowInc 65+" <-
       combine_tbl_elements("Tbl 8", group_varlist=c(NA, NA, NA, "age_detail", "PRACE", "PRACE", NA, NA, "age_detail", "PRACE", "PRACE"),
                                     metric_list=c("count", rep("share", 10)))
-    report_tables$"Tbl 9 Pov-LowInc <18" <-
+    report_tables$"Tbl9 Pov-LowInc <18" <-
       combine_tbl_elements("Tbl 9", group_varlist=c(NA, NA, NA, "age_detail", "PRACE", "PRACE", NA, NA, "age_detail", "PRACE", "PRACE"),
                                     metric_list=c("count", rep("share", 10)))
-    report_tables$"Tbl 10 Pov-LowInc Disability" <-
+    report_tables$"Tbl10 Pov-LowInc Disability" <-
       combine_tbl_elements("Tbl 10", group_varlist=c(rep(NA, 5), "PRACE", "PRACE", rep(NA, 4), "PRACE", "PRACE"),
                                     metric_list=c("count", rep("share", 12)))
-    report_tables$"Tbl 11 Zero Veh" <-
+    report_tables$"Tbl11 Zero Veh" <-
       combine_tbl_elements("Tbl 11", group_varlist=rep(NA, 10),
                                     metric_list=c("count", rep("share", 9)))
-    report_tables$"Tbl 12 Common Languages" <- xtrastats$"Tbl 12 Common Languages"
-    report_tables$"Tbl 13 Limited English" <- xtrastats$"Tbl 13a Pop 5yo+ x LEP"
-    report_tables$"Tbl 14 LEP Languages" <- xtrastats$"Tbl 14 LEP Languages"
+    report_tables$"Tbl12 Common Languages" <- xtrastats$"Tbl 12 Common Languages"
+    report_tables$"Tbl13 Limited English" <- xtrastats$"Tbl 13a Pop 5yo+ x LEP"
+    report_tables$"Tbl14 LEP Languages" <- xtrastats$"Tbl 14 LEP Languages"
+    report_tables$"Tbl15 Non-English Languages" <- xtrastats$"Tbl 15 Non-English Languages"
 
     return(report_tables)
 }
