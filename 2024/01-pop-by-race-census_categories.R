@@ -1,4 +1,4 @@
-# TITLE: 2024 Demographic Profile - Table 01 - Population by Race
+# TITLE: 2024 Demographic Profile - Table 01 - Population by Race/Ethnicity Using Census Categories
 # GEOGRAPHIES: County & PSRC Region
 # DATA SOURCE: ACS Data
 # AUTHOR: Eric Clute
@@ -23,10 +23,10 @@ table_order <- c("race",
                  "estimate_Pierce", "moe_Pierce", 
                  "estimate_Snohomish", "moe_Snohomish",
                  "rr_Region", "rr_King","rr_Kitsap","rr_Pierce", "rr_Snohomish")
-re_order <- c("Total","Not Hispanic or Latinx","American Indian and Alaska Native NH", "Asian NH", "Black NH",
+re_order <- c("Total","Total Not Hispanic or Latinx","American Indian and Alaska Native NH", "Asian NH", "Black NH",
               "Native Hawaiian and Pacific Islander NH","White NH", "Some Other Race NH", "Two or more races NH", 
               
-              "Hispanic or Latinx","American Indian and Alaska Native Hispanic", "Asian Hispanic", "Black Hispanic",
+              "Total Hispanic or Latinx","American Indian and Alaska Native Hispanic", "Asian Hispanic", "Black Hispanic",
               "Native Hawaiian and Pacific Islander Hispanic","White Hispanic", "Some Other Race Hispanic", "Two or more races Hispanic")
 
 # Pull Data
@@ -77,6 +77,7 @@ B03002 <- B03002_raw %>%
                          grepl("^.*White Hispanic", race) ~ "poc",
                          grepl("^.*Some Other Race", race) ~ "poc",
                          grepl("^.*Two or more races", race) ~ "poc",
+                         grepl("Total$", race) ~ "Total",
                          !is.na(race) ~ "")) %>%            
   filter(!race == "")
 
@@ -113,9 +114,15 @@ poc <- B03002 %>%
   filter(!poc == "")
 
 poc <- poc %>%
-  pivot_wider(names_from = poc, values_from = c(estimate,moe)) %>%
-  mutate(prct=((estimate_poc/estimate_Total))) %>%
-  rowwise() %>%
+  pivot_wider(names_from = poc, values_from = c(estimate,moe)) #%>%
+
+poc <- poc %>%
+  mutate(prct=((estimate_poc/estimate_Total))) #%>%
+
+poc <- poc %>%
+  rowwise() #%>%
+
+poc <- poc %>%
   mutate(moe_new_total=moe_sum(estimate = estimate_poc,
                                moe = moe_poc)) %>%
   mutate(moe_perc_poc=moe_prop(num=estimate_poc,
