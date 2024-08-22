@@ -230,7 +230,7 @@ get_pums_dp <- function(dyear){
 # Table 5 - Asian detail
   asian <- list()
   asian$pop <-
-    psrc_pums_count(filter(pp_df, PRACE=="Asian alone"), rr="cv") %>%
+    psrc_pums_count(filter(pp_df, PRACE=="Asian alone"), rr="cv", incl_na=FALSE) %>%
     select(-any_of(contains("share")))
   asian$pov100 <-
     psrc_pums_count(filter(pp_df, PRACE=="Asian alone"),
@@ -260,7 +260,7 @@ get_pums_dp <- function(dyear){
   asian_detail <- list()
   asian_detail$pop <-
     psrc_pums_count(filter(pp_df, PRACE=="Asian alone"),
-                    group_vars="asian_subgrp", rr="cv") %>%
+                    group_vars="asian_subgrp", incl_na=FALSE, rr="cv") %>%
     select(-any_of(contains("share")))
   asian_detail$pov100 <-
     psrc_pums_count(filter(pp_df, PRACE=="Asian alone"),
@@ -293,18 +293,18 @@ get_pums_dp <- function(dyear){
   xtrastats$"Tbl 6 Poverty Sex" <-
     ctyreg_pums_count(pp_df, c("SEX","poverty_100")) %>%  filter_poverty_level(100)
   xtrastats$"Tbl 6 Pov Race-Hisp Sex 100" <-
-    psrc_pums_count(pp_df, group_vars=c("PRACE","SEX","poverty_100"), rr="cv") %>%
+    psrc_pums_count(pp_df, group_vars=c("PRACE","SEX","poverty_100"), incl_na=FALSE, rr="cv") %>%
     filter_poverty_level(100)
   xtrastats$"Tbl 6 Pov POC Sex 100" <-
-    psrc_pums_count(filter(pp_df, PRACE!="White alone"), group_vars=c("SEX","poverty_100"), rr="cv") %>%
+    psrc_pums_count(filter(pp_df, PRACE!="White alone"), group_vars=c("SEX","poverty_100"), incl_na=FALSE, rr="cv") %>%
     filter_poverty_level(100) %>% mutate(PRACE="POC Total")
   xtrastats$"Tbl 6 LowInc Sex" <-
     ctyreg_pums_count(pp_df, c("SEX","poverty_200")) %>% filter_poverty_level(200)
   xtrastats$"Tbl 6 LowInc Race-Hisp Sex 200" <-
-    psrc_pums_count(pp_df, group_vars=c("PRACE","SEX","poverty_200"), rr="cv") %>%
+    psrc_pums_count(pp_df, group_vars=c("PRACE","SEX","poverty_200"), incl_na=FALSE, rr="cv") %>%
     filter_poverty_level(200)
   xtrastats$"Tbl 6 LowInc POC Sex 200" <-
-    psrc_pums_count(filter(pp_df, PRACE!="White alone"), group_vars=c("SEX","poverty_200"), rr="cv") %>%
+    psrc_pums_count(filter(pp_df, PRACE!="White alone"), group_vars=c("SEX","poverty_200"), incl_na=FALSE, rr="cv") %>%
     filter_poverty_level(200) %>% mutate(PRACE="POC Total")
 
 # Table 7 - Household Type
@@ -349,7 +349,7 @@ get_pums_dp <- function(dyear){
     ctyreg_pums_count(filter(pp_df, age_group=="65+"), c("age_detail", "poverty_100")) %>%
     filter_poverty_level(100)
   xtrastats$"Tbl 8 Pov65+ Race" <-
-    psrc_pums_count(filter(pp_df, age_group=="65+"), group_vars=c("PRACE","poverty_100"), rr="cv") %>%
+    psrc_pums_count(filter(pp_df, age_group=="65+"), group_vars=c("PRACE","poverty_100"), incl_na=FALSE, rr="cv") %>%
     filter_poverty_level(100)
   xtrastats$"Tbl 8 Pov POC 65+" <-
     ctyreg_pums_count(filter(pp_df, PRACE!="White alone" & age_group=="65+"), "poverty_100") %>%
@@ -362,7 +362,7 @@ get_pums_dp <- function(dyear){
     ctyreg_pums_count(filter(pp_df, age_group=="65+"), c("age_detail", "poverty_200")) %>%
     filter_poverty_level(200)
   xtrastats$"Tbl 8 LowInc65+ Race" <-
-    psrc_pums_count(filter(pp_df, age_group=="65+"), group_vars=c("PRACE","poverty_200"), rr="cv") %>%
+    psrc_pums_count(filter(pp_df, age_group=="65+"), group_vars=c("PRACE","poverty_200"), incl_na=FALSE, rr="cv") %>%
     filter_poverty_level(200)
   xtrastats$"Tbl 8 LowInc POC 65+" <-
     ctyreg_pums_count(filter(pp_df, PRACE!="White alone" & age_group=="65+"), "poverty_200") %>%
@@ -378,7 +378,7 @@ get_pums_dp <- function(dyear){
     ctyreg_pums_count(filter(pp_df, age_group=="< 18"), c("age_detail","poverty_100")) %>%
     filter_poverty_level(100)
   xtrastats$"Tbl 9 Pov<18 Race" <-
-    psrc_pums_count(filter(pp_df, age_group=="< 18"), group_vars=c("PRACE","poverty_100"), rr="cv") %>%
+    psrc_pums_count(filter(pp_df, age_group=="< 18"), group_vars=c("PRACE","poverty_100"), incl_na=FALSE, rr="cv") %>%
     filter_poverty_level(100)
   xtrastats$"Tbl 9 Pov <18 POC" <-
     ctyreg_pums_count(filter(pp_df, PRACE!="White alone" & age_group=="< 18"), "poverty_100") %>%
@@ -391,7 +391,7 @@ get_pums_dp <- function(dyear){
     ctyreg_pums_count(filter(pp_df, age_group=="< 18"), c("age_detail","poverty_200")) %>%
     filter_poverty_level(200)
   xtrastats$"Tbl 9 Lowinc<18 Race" <-
-    psrc_pums_count(filter(pp_df, age_group=="< 18"), group_vars=c("PRACE","poverty_200"), rr="cv") %>%
+    psrc_pums_count(filter(pp_df, age_group=="< 18"), group_vars=c("PRACE","poverty_200"), incl_na=FALSE, rr="cv") %>%
     filter_poverty_level(200)
   xtrastats$"Tbl 9 LowInc <18 POC" <-
     ctyreg_pums_count(filter(pp_df, PRACE!="White alone" & age_group=="< 18"), "poverty_200") %>%
@@ -410,7 +410,7 @@ get_pums_dp <- function(dyear){
     ctyreg_pums_count(filter(pp_df, age_group=="65+"), c("DIS","poverty_100")) %>%
     filter_poverty_level(100) %>% filter(grepl("^With ", as.character(DIS)))
   xtrastats$"Tbl 10 PovDisab Race" <-
-    psrc_pums_count(filter(pp_df, grepl("^With ", as.character(DIS))), group_vars=c("PRACE","poverty_100"), rr="cv") %>%
+    psrc_pums_count(filter(pp_df, grepl("^With ", as.character(DIS))), group_vars=c("PRACE","poverty_100"), incl_na=FALSE, rr="cv") %>%
     filter_poverty_level(100)
   xtrastats$"Tbl 10 Pov DIS POC" <-
     ctyreg_pums_count(filter(pp_df, PRACE!="White alone" & grepl("^With ", as.character(DIS))), "poverty_100") %>%
@@ -426,7 +426,7 @@ get_pums_dp <- function(dyear){
     ctyreg_pums_count(filter(pp_df, age_group=="65+"), c("DIS","poverty_200")) %>%
     filter_poverty_level(200) %>% filter(grepl("^With ", as.character(DIS)))
   xtrastats$"Tbl 10 LowIncDisab Race" <-
-    psrc_pums_count(filter(pp_df, grepl("^With ", as.character(DIS))), group_vars=c("PRACE","poverty_200"), rr="cv") %>%
+    psrc_pums_count(filter(pp_df, grepl("^With ", as.character(DIS))), group_vars=c("PRACE","poverty_200"), incl_na=FALSE, rr="cv") %>%
     filter_poverty_level(200)
   xtrastats$"Tbl 10 LowInc DIS POC" <-
     ctyreg_pums_count(filter(pp_df, PRACE!="White alone" & grepl("^With ", as.character(DIS))), "poverty_200") %>%
@@ -474,11 +474,11 @@ get_pums_dp <- function(dyear){
 
 # Table 14 - Regional LEP by Language Spoken
   lep_languages <- psrc_pums_count(filter(pp_df, grepl("less than",lep)),
-                                   group_vars="LANP") %>%                                     # First pull to choose languages
+                                   group_vars="LANP",incl_na=FALSE) %>%                                     # First pull to choose languages
     filter(LANP!="Total" & (count + count_moe) > 5000) %>%                                    # -- to enable LEP share per language
     pull(LANP) %>% as.character() %>% unique()
   lep_stats <- filter(pp_df, AGEP>=5 & LANP %in% lep_languages) %>%
-    psrc_pums_count(group_vars=c("LANP","lep")) %>%
+    psrc_pums_count(group_vars=c("LANP","lep"), incl_na=FALSE) %>%
     filter(LANP!="Total" & lep!="Speak English 'very well'") %>%                              # LEP share per language
     split(f=.$lep) %>% lapply(select,-lep)
   lep_stats$Total %<>% select(-contains("share")) %>%
@@ -497,11 +497,11 @@ get_pums_dp <- function(dyear){
              names_pattern = "(.*_)(values|moe)$")                                            # -- with identical numeric format, e.g. decimal places
 
 # Table 15 - Additional stats by largest non-English population total                         # Extra context added last                                        # -- to enable LEP share per language
-  lep_languages2 <- psrc_pums_count(pp_df, group_vars="LANP") %>%                             # First pull to choose languages
+  lep_languages2 <- psrc_pums_count(pp_df, group_vars="LANP", incl_na=FALSE) %>%              # First pull to choose languages
     filter(LANP!="Total" & (count + count_moe) > 10000) %>% pull(LANP) %>%                    # -- to enable LEP share per language
     as.character() %>% unique()
   lep_stats2 <- filter(pp_df, AGEP>=5 & LANP %in% lep_languages2) %>%
-    psrc_pums_count(group_vars=c("LANP","lep")) %>%
+    psrc_pums_count(group_vars=c("LANP","lep"), incl_na=FALSE) %>%
     filter(LANP!="Total" & lep!="Speak English 'very well'") %>%                              # LEP share per language
     split(f=.$lep) %>% lapply(select,-lep)
   lep_stats2$Total %<>% select(-contains("share")) %>%
