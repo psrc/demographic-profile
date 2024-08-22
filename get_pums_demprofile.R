@@ -19,6 +19,7 @@ pvars <- c(
   "RAC2P",                  # Detailed race
   "HINCP",                  # Household income
   "ENG",                    # Ability to speak English
+  "LANX",                   # Language spoken at home
   "SEX"
 )
 
@@ -71,6 +72,8 @@ add_shared_vars <- function(df){
        case_when(PRACE!="Asian alone" ~ NA_character_,
                  PRACE=="Asian alone" &
                    grepl(!!asian_regex, as.character(RAC2P)) ~ as.character(RAC2P),
+                 PRACE=="Asian alone" &
+                   grepl("^All combinations", as.character(RAC2P)) ~ "Two or more Asian",
                  PRACE=="Asian alone" ~ "Other Asian",
                  TRUE ~ NA_character_)))
 }
@@ -124,8 +127,8 @@ format_county_stats <- function(df, group_vars=NULL, metric="share"){
     .[, `:=`(value=get(metric), moe=get(paste0(metric,"_moe")))] %>%
     .[, `:=`(COUNTY=factor(case_when(COUNTY!="Region" ~ paste(COUNTY, "County"),
                                      COUNTY=="Region" ~ "Central Puget Sound")),
-             value=case_when(((moe/1.645)/value) > 0.5 ~ "**",
-                             ((moe/1.645)/value) > 0.3 ~ paste("***", value),
+             value=case_when(((moe/1.645)/value) > 0.5 ~ paste("††", value),
+                             ((moe/1.645)/value) > 0.3 ~ paste("**", value),
                              TRUE ~ as.character(value)))] %>%
     .[, ..selectcols] %>% setcolorder(c(group_vars, "COUNTY")) %>%
     tidyr::pivot_wider(
@@ -188,7 +191,7 @@ get_pums_dp <- function(dyear){
   xtrastats$"Tbl 3 LowInc Race-Hisp" <-
     ctyreg_pums_count(pp_df, c("PRACE","poverty_200")) %>%
     filter_poverty_level(200)
-  xtrastats$"Tbl 3 Pov POC" <-
+  xtrastats$"Tbl 3 LowInc POC" <-
     ctyreg_pums_count(filter(pp_df, PRACE!="White alone"), "poverty_200") %>%
     filter_poverty_level(200) %>% mutate(PRACE="POC total")
 
@@ -287,12 +290,16 @@ get_pums_dp <- function(dyear){
   xtrastats$"Tbl 5 Asian Detail" <- rbind(asians, asian_details) %>% relocate(asian_subgrp)
 
 # Table 6 - Poverty, Race & Sex
+  xtrastats$"Tbl 6 Poverty Sex" <-
+    ctyreg_pums_count(pp_df, c("SEX","poverty_100")) %>%  filter_poverty_level(100)
   xtrastats$"Tbl 6 Pov Race-Hisp Sex 100" <-
     psrc_pums_count(pp_df, group_vars=c("PRACE","SEX","poverty_100"), rr="cv") %>%
     filter_poverty_level(100)
   xtrastats$"Tbl 6 Pov POC Sex 100" <-
     psrc_pums_count(filter(pp_df, PRACE!="White alone"), group_vars=c("SEX","poverty_100"), rr="cv") %>%
     filter_poverty_level(100) %>% mutate(PRACE="POC Total")
+  xtrastats$"Tbl 6 LowInc Sex" <-
+    ctyreg_pums_count(pp_df, c("SEX","poverty_200")) %>% filter_poverty_level(200)
   xtrastats$"Tbl 6 LowInc Race-Hisp Sex 200" <-
     psrc_pums_count(pp_df, group_vars=c("PRACE","SEX","poverty_200"), rr="cv") %>%
     filter_poverty_level(200)
@@ -301,6 +308,9 @@ get_pums_dp <- function(dyear){
     filter_poverty_level(200) %>% mutate(PRACE="POC Total")
 
 # Table 7 - Household Type
+  xtrastats$"Tbl 7 HH POC count" <-
+    ctyreg_pums_count(filter(hh_df, PRACE!="White alone")) %>%
+    select(-any_of(contains("share", ignore.case = FALSE)))
   xtrastats$"Tbl 7 HH Type Summary" <-
     ctyreg_pums_count(hh_df, "hh_type") %>%
     select(-any_of(contains("share", ignore.case = FALSE)))
@@ -457,7 +467,9 @@ get_pums_dp <- function(dyear){
     slice_max(order_by=share, n=12, by=COUNTY, na_rm=TRUE)                                    # Selecting top 12 per geography
 
 # Table 13 - Limited English Proficiency
-  xtrastats$"Tbl 13a Pop 5yo+ x LEP" <-
+  xtrastats$"Tbl 13 Pop 5yo+ x LANX" <-
+    ctyreg_pums_count(filter(pp_df, AGEP>5), "LANX") %>% rename(lep=LANX)
+  xtrastats$"Tbl 13 Pop 5yo+ x LEP" <-
     ctyreg_pums_count(filter(pp_df, AGEP>5), "lep")
 
 # Table 14 - Regional LEP by Language Spoken
@@ -513,8 +525,8 @@ get_pums_dp <- function(dyear){
 format_for_report <- function(xtrastats){
     report_tables <- list()
     report_tables$"Tbl3 Pov-LowInc Race-Hisp" <-
-      combine_tbl_elements(rgx="Tbl 3", group_varlist=c(NA, NA, "PRACE", "PRACE", NA, "PRACE"),
-                                    metric_list = c("count", rep.int("share",5)))
+      combine_tbl_elements(rgx="Tbl 3", group_varlist=c(NA, NA, "PRACE", "PRACE", NA, "PRACE", NA),
+                                    metric_list = c(rep(c("count", "share", "count"),2),"count"))
     report_tables$"Tbl4a Med Inc Race-Hisp" <-
       combine_tbl_elements("Tbl 4a", group_varlist=rep.int("HRACE",2),
                                     metric_list=c("median","share"))
@@ -523,25 +535,32 @@ format_for_report <- function(xtrastats){
                            metric_list=c("median","share"))
     report_tables$"Tbl5 Asian Detail" <- xtrastats$"Tbl 5 Asian Detail" %>% select(-any_of(contains("cv")))
     report_tables$"Tbl6 Pov-LowInc Race Sex" <-
-      combine_tbl_elements("Tbl 6", group_varlist="PRACE;SEX",
-                           metric_list=rep("share",4))
+      combine_tbl_elements("Tbl 6", group_varlist=rep(c("SEX", "PRACE;SEX", "SEX"),2),
+                           metric_list=rep("share",6))
     report_tables$"Tbl7 HH Type" <-
-      combine_tbl_elements("Tbl 7", group_varlist=rep("hh_type", 10),
-                           metric_list=c("count",rep("share",6), rep("HINCP_median",3)))
+      combine_tbl_elements("Tbl 7", group_varlist=c(NA, rep("hh_type", 10)),
+                           metric_list=c(rep("count",2) ,rep("share",6), rep("HINCP_median",3)))
     report_tables$"Tbl8 Pov-LowInc 65+" <-
-      combine_tbl_elements("Tbl 8", group_varlist=c(NA, NA, NA, "age_detail", "PRACE", "PRACE", NA, NA, "age_detail", "PRACE", "PRACE"),
-                                    metric_list=c("count", rep("share", 10)))
+      combine_tbl_elements("Tbl 8",
+                           group_varlist=c(NA, rep(c(NA, NA, "age_detail", "PRACE", "PRACE"), 2)),
+                           metric_list=c("count", rep("share", 10)))
     report_tables$"Tbl9 Pov-LowInc <18" <-
-      combine_tbl_elements("Tbl 9", group_varlist=c(NA, NA, NA, "age_detail", "PRACE", "PRACE", NA, NA, "age_detail", "PRACE", "PRACE"),
-                                    metric_list=c("count", rep("share", 10)))
+      combine_tbl_elements("Tbl 9",
+                           group_varlist=c(NA, rep(c(NA, NA, "age_detail", "PRACE", "PRACE"), 2)),
+                           metric_list=c("count", rep("share", 10)))
     report_tables$"Tbl10 Pov-LowInc Disability" <-
       combine_tbl_elements("Tbl 10", group_varlist=c(rep(NA, 5), "PRACE", "PRACE", rep(NA, 4), "PRACE", "PRACE"),
                                     metric_list=c("count", rep("share", 12)))
     report_tables$"Tbl11 Zero Veh" <-
       combine_tbl_elements("Tbl 11", group_varlist=rep(NA, 10),
-                                    metric_list=c("count", rep("share", 9)))
+                                    metric_list=c("count", rep("share", 9))) %>%
+      rbind(combine_tbl_elements("Tbl 11 No Veh", group_varlist=rep(NA, 9),
+                                 metric_list=rep("count", 9)))
     report_tables$"Tbl12 Common Languages" <- xtrastats$"Tbl 12 Common Languages"
-    report_tables$"Tbl13 Limited English" <- xtrastats$"Tbl 13a Pop 5yo+ x LEP"
+    report_tables$"Tbl13 Limited English" <-
+         rbind(combine_tbl_elements("Tbl 13", group_varlist=rep("lep", 2), metric_list=rep("count", 2)),
+         mutate(format_county_stats(xtrastats$"Tbl 13 Pop 5yo+ x LEP", group_vars="lep", metric="share"),
+                Stub="Tbl 13 Pop 5yo+ x LEP share"))
     report_tables$"Tbl14 LEP Languages" <- xtrastats$"Tbl 14 LEP Languages"
     report_tables$"Tbl15 Non-English Languages" <- xtrastats$"Tbl 15 Non-English Languages"
 
