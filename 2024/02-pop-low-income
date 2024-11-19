@@ -1,0 +1,149 @@
+# TITLE: 2024 Demographic Profile - Table 02 - Low Income Populations
+# GEOGRAPHIES: County & PSRC Region
+# DATA SOURCE: ACS Data
+# AUTHOR: Kristin Mitchell
+
+#packages
+library(tidyverse)
+library(psrccensus)
+library(psrcplot)
+library(stringr)
+library(tidycensus)
+
+# Poverty------------------------------------------------------------------
+poverty <- get_acs_recs(geography = 'county', table.names = c('C17002'), years=c(2022), acs.type = 'acs1')
+
+# All labels
+
+full.poverty <- poverty %>%
+  mutate(label = case_when(  
+    str_detect(label, "Under") ~"Income below 50% of poverty level",
+    str_detect(label, "!.50") ~"Income between 50% to 99%",
+    str_detect(label, "!1.00") ~"Income between 100% to 124%",
+    str_detect(label, "!1.25") ~"Income between 125% to 149%",
+    str_detect(label, "!1.50") ~"Income between 150% to 184%",
+    str_detect(label, "!1.85") ~"Income between 185% to 199%",
+    str_detect(label, "!2.00") ~"Income 200% and over",
+    str_detect(label, "Estimate!!Total:") ~"Total"
+    ))
+
+full.poverty <- full.poverty[ -c(1, 3:4, 8:9)]
+
+## Below 100% poverty level
+
+grouped100.poverty <- poverty %>%
+  mutate(label = case_when(  
+    str_detect(label, "Under") ~"Below_100",
+    str_detect(label, "!.50") ~"Below_100",
+    str_detect(label, "!1.00") ~"100_and_over",
+    str_detect(label, "!1.25") ~"100_and_over",
+    str_detect(label, "!1.50") ~"100_and_over",
+    str_detect(label, "!1.85") ~"100_and_over",
+    str_detect(label, "!2.00") ~"100_and_over",
+    str_detect(label, "Estimate!!Total:") ~"Total"
+  ))
+
+below100.poverty <- grouped100.poverty[ -c(1, 3:4, 8:9)]
+
+# Calculate per, crunch new MOE
+
+pov100 <- below100.poverty %>% 
+  group_by(label, name) %>%
+  summarise(estimate=sum(estimate), 
+            moe=moe_sum(estimate=estimate, moe=moe, na.rm = TRUE)) %>%
+  filter(!label == "100_and_over")
+
+pov100 <- pov100 %>%
+  pivot_wider(names_from = label, values_from = c(estimate,moe)) %>%
+  mutate(prct=((estimate_Below_100/estimate_Total))) %>%
+  rowwise() %>%
+  mutate(moe_new_total=moe_sum(estimate = estimate_Below_100,
+                               moe = moe_Below_100)) %>%
+  mutate(moe_perc_pov=moe_prop(num=estimate_Below_100,
+                               denom=estimate_Total, moe_num=moe_Below_100, moe_denom=moe_new_total))
+
+
+pov100rel <- reliability_calcs(pov100, estimate='prct',
+                               moe='moe_perc_pov')
+head(pov100rel %>% select(name, moe_perc_pov, reliability))
+
+## Below 150% poverty level
+
+grouped150.poverty <- poverty %>%
+  mutate(label = case_when(  
+    str_detect(label, "Under") ~"Below_150",
+    str_detect(label, "!.50") ~"Below_150",
+    str_detect(label, "!1.00") ~"Below_150",
+    str_detect(label, "!1.25") ~"Below_150",
+    str_detect(label, "!1.50") ~"150_and_over",
+    str_detect(label, "!1.85") ~"150_and_over",
+    str_detect(label, "!2.00") ~"150_and_over",
+    str_detect(label, "Estimate!!Total:") ~"Total"
+  ))
+
+below150.poverty <- grouped150.poverty[ -c(1, 3:4, 8:9)]
+
+# Calculate per, crunch new MOE
+
+pov150 <- below150.poverty %>% 
+  group_by(label, name) %>%
+  summarise(estimate=sum(estimate), 
+            moe=moe_sum(estimate=estimate, moe=moe, na.rm = TRUE)) %>%
+  filter(!label == "150_and_over")
+
+pov150 <- pov150 %>%
+  pivot_wider(names_from = label, values_from = c(estimate,moe)) %>%
+  mutate(prct=((estimate_Below_150/estimate_Total))) %>%
+  rowwise() %>%
+  mutate(moe_new_total=moe_sum(estimate = estimate_Below_150,
+                               moe = moe_Below_150)) %>%
+  mutate(moe_perc_pov=moe_prop(num=estimate_Below_150,
+                               denom=estimate_Total, moe_num=moe_Below_150, moe_denom=moe_new_total))
+
+
+pov150rel <- reliability_calcs(pov150, estimate='prct',
+                               moe='moe_perc_pov')
+head(pov150rel %>% select(name, moe_perc_pov, reliability))
+
+## Below 200% poverty level
+
+grouped200.poverty <- poverty %>%
+  mutate(label = case_when(  
+    str_detect(label, "Under") ~"Below_200",
+    str_detect(label, "!.50") ~"Below_200",
+    str_detect(label, "!1.00") ~"Below_200",
+    str_detect(label, "!1.25") ~"Below_200",
+    str_detect(label, "!1.50") ~"Below_200",
+    str_detect(label, "!1.85") ~"Below_200",
+    str_detect(label, "!2.00") ~"200_and_over",
+    str_detect(label, "Estimate!!Total:") ~"Total"
+  ))
+
+below200.poverty <- grouped200.poverty[ -c(1, 3:4, 8:9)]
+
+# Calculate per, crunch new MOE
+
+pov200 <- below200.poverty %>% 
+  group_by(label, name) %>%
+  summarise(estimate=sum(estimate), 
+            moe=moe_sum(estimate=estimate, moe=moe, na.rm = TRUE)) %>%
+  filter(!label == "200_and_over")
+
+pov200 <- pov200 %>%
+  pivot_wider(names_from = label, values_from = c(estimate,moe)) %>%
+  mutate(prct=((estimate_Below_200/estimate_Total))) %>%
+  rowwise() %>%
+  mutate(moe_new_total=moe_sum(estimate = estimate_Below_200,
+                               moe = moe_Below_200)) %>%
+  mutate(moe_perc_pov=moe_prop(num=estimate_Below_200,
+                               denom=estimate_Total, moe_num=moe_Below_200, moe_denom=moe_new_total))
+
+
+pov200rel <- reliability_calcs(pov200, estimate='prct',
+                         moe='moe_perc_pov')
+head(pov200rel %>% select(name, moe_perc_pov, reliability))
+
+write.csv(full.poverty,file='Y:/Demog Profile/2024/Data/02-low-income-pop/C17002-all-acs1yr-2022-draft.csv')
+write.csv(pov100rel,file='Y:/Demog Profile/2024/Data/02-low-income-pop/C17002-below100-acs1yr-2022-draft.csv')
+write.csv(pov150rel,file='Y:/Demog Profile/2024/Data/02-low-income-pop/C17002-below150-acs1yr-2022-draft.csv')
+write.csv(pov200rel,file='Y:/Demog Profile/2024/Data/02-low-income-pop/C17002-below200-acs1yr-2022-draft.csv')
