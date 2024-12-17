@@ -4,8 +4,8 @@ library(dplyr)
 library(data.table)
 
 dyear <- 2022
-#pums_rds <- "J:/Projects/Census/AmericanCommunitySurvey/Data/PUMS/pums_rds"                # Network PUMS location
-pums_rds <- "C:/Users/mjensen/Projects/Census/AmericanCommunitySurvey/Data/PUMS/pums_rds"   # Local PUMS location
+pums_rds <- "J:/Projects/Census/AmericanCommunitySurvey/Data/PUMS/pums_rds"                # Network PUMS location
+#pums_rds <- "../Census/AmericanCommunitySurvey/Data/PUMS/pums_rds"                         # Local PUMS location
 
 # Helper function -------------------------------
 combo_count <- function(x){
@@ -18,16 +18,16 @@ combo_count <- function(x){
 }
 
 # Build the data object -------------------------
-pvars <- c("HISP","RAC1P","RACAIAN","RACASN","RACBLK","RACNH","RACPI","RACSOR","RACWHT","RACNUM")
-checkbox_vars <- c("HISP","RACAIAN","RACASN","RACBLK","RACNHPI","RACSOR","RACWHT")
-byvars <- c("SERIALNO","DATA_YEAR","PRODUCT","COUNTY")
+pvars <- c("HISP", paste0("RAC", c("1P","AIAN","ASN","BLK","NH","PI","SOR","WHT","NUM")))   # Variables to retrieve
+checkbox_vars <- c("HISP","RACAIAN","RACASN","RACBLK","RACNHPI","RACSOR","RACWHT")          # Categories to use
+byvars <- c("SERIALNO","DATA_YEAR","PRODUCT","COUNTY")                                      # Household grouping variables
 
 hh_df <- get_psrc_pums(5, dyear, "h", "HRACE", dir=pums_rds)                                # Retrieve household data
 pp_df <- get_psrc_pums(5, dyear, "p", pvars, dir=pums_rds) %>%                              # Retrieve persons data
   srvyr::as_tibble() %>% setDT()
 for(col in c(checkbox_vars, "RACNH","RACPI"))
   set(pp_df, j=col, value=as.character(pp_df[[col]]))                                       # Character type used in next operations
-pp_df[, RACNHPI:=pmax(RACNH,RACPI)] %>% .[, c("RACNH", "RACPI"):=NULL] %>%                 # Keep only combined NHPI
+pp_df[, RACNHPI:=pmax(RACNH,RACPI)] %>% .[, c("RACNH", "RACPI"):=NULL] %>%                  # Keep only combined NHPI
   .[, HISP:=case_when(stringr::str_detect(HISP,"^Not ") ~"No",                              # Switch to dichotomous Hispanic ethnicity
                       !is.na(HISP) ~"Yes")]
 hh_x <- pp_df[, lapply(.SD, max, na.rm=TRUE), by=eval(byvars), .SDcols=(checkbox_vars)] %>% # Summarize to household
