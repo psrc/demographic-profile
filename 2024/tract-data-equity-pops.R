@@ -1,4 +1,4 @@
-# TITLE: Demographic Profile Mapping - % POC % youth % 65+ % in poverty % low income % with a disability % LEP
+# TITLE: Demographic Profile Mapping - % POC % youth (5-17) % 65+ % in poverty % low income % with a disability % LEP
 # GEOGRAPHIES: Tract
 # DATA SOURCE: ACS Data
 # AUTHOR: Eric Clute
@@ -9,10 +9,10 @@ library(tidycensus)
 library(dplyr)
 library(tidyr)
 
-year <- 2022
+year <- 2023
 acs_type <- "acs5"
 tables_needed <- c("DP05","DP02", "S1701")
-export <- "Y:/Demog Profile/2024/Data/Maps/equity_populations_bytract.csv"
+export <- "Y:/Demog Profile/2024/Data/Maps/equity_populations_bytract-NEW.csv"
 
 # Functions
 
@@ -28,7 +28,8 @@ raw <- pull_tables(tables_needed)
 # DATA BY TRACT ------------
 # Select data
 data <- raw %>%
-  filter(variable == "DP05_0001" | variable == "DP05_0024" | variable == "DP05_0024P" | variable == "DP05_0019" | variable == "DP05_0019P"| # %senior & %youth
+  filter(variable == "DP05_0001" | variable == "DP05_0024" | variable == "DP05_0024P" | # %senior
+         variable == "DP05_0019" | variable == "DP05_0019P"| variable == "DP05_0005" | variable == "DP05_0005P" | # %under 18 & %under 5
          variable == "DP05_0072" | variable == "DP05_0079" | # %POC
          variable == "DP02_0071" | variable == "DP02_0072" | variable == "DP02_0072P" | # %disability
          variable == "DP02_0112" | variable == "DP02_0115" | variable == "DP02_0115P" | # %LEP
@@ -46,8 +47,11 @@ data <- raw %>%
          senior_pop_est = estimate_DP05_0024, senior_pop_moe = moe_DP05_0024,
          senior_prct_est = estimate_DP05_0024P,senior_prct_moe = moe_DP05_0024P,
          
-         youth_pop_est = estimate_DP05_0019, youth_pop_moe = moe_DP05_0019,
-         youth_prct_est = estimate_DP05_0019P,youth_prct_moe = moe_DP05_0019P,
+         under5_pop_est = estimate_DP05_0005, under5_pop_moe = moe_DP05_0005,
+         under5_prct_est = estimate_DP05_0005P,under5_prct_moe = moe_DP05_0005P,
+         
+         under18_pop_est = estimate_DP05_0019, under18_pop_moe = moe_DP05_0019,
+         under18_prct_est = estimate_DP05_0019P,under18_prct_moe = moe_DP05_0019P,
          
          nhwhite_pop_est = estimate_DP05_0079, nhwhite_pop_moe = moe_DP05_0079,
          
@@ -64,6 +68,13 @@ data <- raw %>%
   mutate(poc_prct_est = 1 - nhwhite_pop_est/tract_pop_race_est,
          poc_prct_moe = tidycensus::moe_prop(nhwhite_pop_est, tract_pop_race_est,
                                              nhwhite_pop_moe, tract_race_pop_moe),
+         
+         youth_pop_est = under18_pop_est - under5_pop_est,
+         youth_pop_moe = sqrt(under18_pop_moe^2 + under5_pop_moe^2),
+         
+         youth_prct_est = under18_prct_est - under5_prct_est,
+         youth_prct_moe = sqrt(under18_prct_moe^2 + under5_prct_moe^2),
+         
          pov200_prct_est = pov200_pop_est / tract_pop_pov_est,
          pov200_prct_moe = tidycensus::moe_prop(pov200_pop_est, tract_pop_pov_est,
                                                 pov200_pop_moe, tract_pov_pop_moe)
@@ -102,6 +113,10 @@ data <- data %>%
 # Clean up percent data
 data$senior_prct_est <- (data$senior_prct_est / 100)
 data$senior_prct_moe <- (data$senior_prct_moe / 100)
+data$under5_prct_est <- (data$under5_prct_est / 100)
+data$under5_prct_moe <- (data$under5_prct_moe / 100)
+data$under18_prct_est <- (data$under18_prct_est / 100)
+data$under18_prct_moe <- (data$under18_prct_moe / 100)
 data$youth_prct_est <- (data$youth_prct_est / 100)
 data$youth_prct_moe <- (data$youth_prct_moe / 100)
 data$dis_prct_est <- (data$dis_prct_est / 100)
@@ -113,7 +128,7 @@ data$pov100_prct_moe <- (data$pov100_prct_moe / 100)
 
 # Extract column names that match the patterns
 selected_columns <- c("GEOID")  # Initialize with non-grep columns
-for (pattern in c("^senior_", "^youth_", "^nhwhite_", "^poc_", "^dis_", "^lep_", "^pov100_", "^pov200_", "^tract_", "^reg_total_", "^reg_pop_", "^reg_prct_")) {
+for (pattern in c("^senior_", "^under5_", "^under18_", "^youth_", "^nhwhite_", "^poc_", "^dis_", "^lep_", "^pov100_", "^pov200_", "^tract_", "^reg_total_", "^reg_pop_", "^reg_prct_")) {
   selected_columns <- c(selected_columns, grep(pattern, names(data), value = TRUE))
 }
 
