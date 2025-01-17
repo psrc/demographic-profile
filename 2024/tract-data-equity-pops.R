@@ -9,7 +9,7 @@ library(tidycensus)
 library(dplyr)
 library(tidyr)
 
-year <- 2023
+year <- 2023 # Check all variables when changing vintages! 2022 to 2023 changed the race/ethnicity variables
 acs_type <- "acs5"
 tables_needed <- c("DP05","DP02", "S1701")
 export <- "Y:/Demog Profile/2024/Data/Maps/equity_populations_bytract-NEW.csv"
@@ -30,7 +30,7 @@ raw <- pull_tables(tables_needed)
 data <- raw %>%
   filter(variable == "DP05_0001" | variable == "DP05_0024" | variable == "DP05_0024P" | # %senior
          variable == "DP05_0019" | variable == "DP05_0019P"| variable == "DP05_0005" | variable == "DP05_0005P" | # %under 18 & %under 5
-         variable == "DP05_0072" | variable == "DP05_0079" | # %POC
+         variable == "DP05_0033" | variable == "DP05_0082" | # %POC (2022 vintage - DP05_0072 = total pop and DP05_0079 = nhwhite)
          variable == "DP02_0071" | variable == "DP02_0072" | variable == "DP02_0072P" | # %disability
          variable == "DP02_0112" | variable == "DP02_0115" | variable == "DP02_0115P" | # %LEP
          variable == "S1701_C01_001" | variable == "S1701_C02_001" | variable == "S1701_C03_001" |  # %below 100% poverty
@@ -39,7 +39,7 @@ data <- raw %>%
   select(GEOID, variable, estimate, moe) %>%
   pivot_wider(names_from = variable, values_from = c(estimate, moe)) %>%
   rename(tract_pop_age_est = estimate_DP05_0001, tract_age_pop_moe = moe_DP05_0001,
-         tract_pop_race_est = estimate_DP05_0072, tract_race_pop_moe = moe_DP05_0072,
+         tract_pop_race_est = estimate_DP05_0033, tract_race_pop_moe = moe_DP05_0033,
          tract_pop_dis_est = estimate_DP02_0071, tract_dis_pop_moe = moe_DP02_0071,
          tract_pop_lep_est = estimate_DP02_0112, tract_lep_pop_moe = moe_DP02_0112,
          tract_pop_pov_est = estimate_S1701_C01_001, tract_pov_pop_moe = moe_S1701_C01_001,
@@ -53,7 +53,7 @@ data <- raw %>%
          under18_pop_est = estimate_DP05_0019, under18_pop_moe = moe_DP05_0019,
          under18_prct_est = estimate_DP05_0019P,under18_prct_moe = moe_DP05_0019P,
          
-         nhwhite_pop_est = estimate_DP05_0079, nhwhite_pop_moe = moe_DP05_0079,
+         nhwhite_pop_est = estimate_DP05_0082, nhwhite_pop_moe = moe_DP05_0082,
          
          dis_pop_est = estimate_DP02_0072, dis_pop_moe = moe_DP02_0072,
          dis_prct_est = estimate_DP02_0072P, dis_prct_moe = moe_DP02_0072P,
