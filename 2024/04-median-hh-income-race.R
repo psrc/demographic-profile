@@ -9,12 +9,12 @@ library(tidycensus)
 library(tidyverse)
 library(dplyr)
 
-year <- (2022)
+year <- (2023)
 acs_type <- "1"
 
 raw_export <- c("raw", year, "acs_pums", acs_type)
-formatted_export <- c("formatted", year, "acs_pums", acs_type)
-export_path <- "Y:/Demog Profile/2024/Data/04-median-hh-income-race"
+formatted_export <- c("table04", year, "acs1")
+export_path <- "Y:/Demog Profile/2025/Data/DP-Tables-ACS-2023"
 
 table_order <- c("race",
                  "estimate_Region","moe_Region",
@@ -113,9 +113,9 @@ table04 <- rbind(poc_pivot, table04)
 table04 <- table04[c(which(table04$race != "poc"), which(table04$race == "poc")), ]
 
 # Export raw table
-file_name_raw <- paste(raw_export, collapse = "_")
-file_name_raw <- paste(file_name_raw, ".csv", sep = "")
-write.csv(table04, file = file.path(export_path, file_name_raw), row.names = FALSE)
+# file_name_raw <- paste(raw_export, collapse = "_")
+# file_name_raw <- paste(file_name_raw, ".csv", sep = "")
+# write.csv(table04, file = file.path(export_path, file_name_raw), row.names = FALSE)
 
 # Rounded estimates
 columns_to_round <- grep("^estimate_", names(table04), value = TRUE) # Columns to be rounded
