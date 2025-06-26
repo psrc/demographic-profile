@@ -81,7 +81,8 @@ add_shared_vars <- function(df){
                  PRACE=="Asian alone" &
                    grepl("^All combinations", as.character(RAC2P)) ~ "Two or more Asian",
                  PRACE=="Asian alone" ~ "Other Asian",
-                 TRUE ~ NA_character_)))
+                 TRUE ~ NA_character_))
+     )
 }
 
 add_pp_vars <- function(df){
@@ -169,9 +170,21 @@ combine_tbl_elements <- function(rgx, group_varlist=NULL, metric_list){         
 # Generate all indicators for a single survey
 get_pums_dp <- function(dyear){
 
+  if(dyear==2023){
+    pvars %<>% .[! pvars=="RAC2P"] %>% c("RAC2P19", "RAC2P23")
+    hvars %<>% .[! hvars=="RAC2P"] %>% c("RAC2P19", "RAC2P23")
+  }
+
   pums_rds <- "J:/Projects/Census/AmericanCommunitySurvey/Data/PUMS/pums_rds"                 # Network PUMS location
   pp_df <- get_psrc_pums(5, dyear, "p", pvars, dir=pums_rds)                                  # Retrieve persons data
   hh_df <- get_psrc_pums(5, dyear, "h", hvars, dir=pums_rds)                                  # Retrieve household data
+
+  if(dyear==2023){
+    pp_df %<>% mutate(RAC2P=case_when(str_detect(RAC2P23, "^Code classification is Not Applicable") ~RAC2P19,
+                                      str_detect(RAC2P19, "^Code classification is Not Applicable") ~RAC2P23))
+    hh_df %<>% mutate(RAC2P=case_when(str_detect(RAC2P23, "^Code classification is Not Applicable") ~RAC2P19,
+                                      str_detect(RAC2P19, "^Code classification is Not Applicable") ~RAC2P23))
+  }
 
   pp_df %<>% add_shared_vars() %>% add_pp_vars()
   hh_df %<>% add_shared_vars() %>% add_hh_vars()
@@ -628,7 +641,7 @@ write_dprofile_pums_xlsx <- function(result_list){
 }
 
 # Example -------------
-xtrastats <- get_pums_dp(2022)                          # Returns expanded tables as separate items in a list
+xtrastats <- get_pums_dp(2023)                          # Returns expanded tables as separate items in a list
 #write_dprofile_pums_xlsx(xtrastats)                     # Write the expanded tables to .xlsx
 prettier <- format_for_report(xtrastats)                # Formats existing object (pivoting, asterisks, etc)
 write_dprofile_pums_xlsx(prettier)                      # Write the structured tables to .xlsx (will overwrite, so rename prior write)
