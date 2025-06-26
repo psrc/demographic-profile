@@ -9,12 +9,12 @@ library(tidycensus)
 library(tidyverse)
 library(dplyr)
 
-year <- (2022)
+year <- (2023)
 acs_type <- "acs1"
 
 raw_export <- c("raw_census_categories", year, acs_type)
-formatted_export <- c("formatted_census_categories", year, acs_type)
-export_path <- "Y:/Demog Profile/2024/Data/01-pop-by-race"
+formatted_export <- c("table01_census_race_categories", year, acs_type)
+export_path <- "Y:/Demog Profile/2025/Data/DP-Tables-ACS-2023"
 
 table_order <- c("race",
                  "estimate_Region","moe_Region",
