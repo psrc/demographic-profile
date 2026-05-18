@@ -173,6 +173,9 @@ get_pums_dp <- function(dyear){
   if(dyear==2023){
     pvars %<>% .[! pvars=="RAC2P"] %>% c("RAC2P19", "RAC2P23")
     hvars %<>% .[! hvars=="RAC2P"] %>% c("RAC2P19", "RAC2P23")
+  } else if(dyear==2024){
+    pvars %<>% .[! pvars=="RAC2P"] %>% c("RAC2P19", "RAC2P24")
+    hvars %<>% .[! hvars=="RAC2P"] %>% c("RAC2P19", "RAC2P24")
   }
 
   pums_rds <- "J:/Projects/Census/AmericanCommunitySurvey/Data/PUMS/pums_rds"                 # Network PUMS location
@@ -184,6 +187,11 @@ get_pums_dp <- function(dyear){
                                       str_detect(RAC2P19, "^Code classification is Not Applicable") ~RAC2P23))
     hh_df %<>% mutate(RAC2P=case_when(str_detect(RAC2P23, "^Code classification is Not Applicable") ~RAC2P19,
                                       str_detect(RAC2P19, "^Code classification is Not Applicable") ~RAC2P23))
+  }else if(dyear==2024){
+    pp_df %<>% mutate(RAC2P=case_when(str_detect(RAC2P24, "^Code classification is Not Applicable") ~RAC2P19,
+                                      str_detect(RAC2P19, "^Code classification is Not Applicable") ~RAC2P24))
+    hh_df %<>% mutate(RAC2P=case_when(str_detect(RAC2P24, "^Code classification is Not Applicable") ~RAC2P19,
+                                      str_detect(RAC2P19, "^Code classification is Not Applicable") ~RAC2P24))
   }
 
   pp_df %<>% add_shared_vars() %>% add_pp_vars()
@@ -642,7 +650,7 @@ write_dprofile_pums_xlsx <- function(result_list){
 }
 
 # Example -------------
-xtrastats <- get_pums_dp(2023)                          # Returns expanded tables as separate items in a list
+xtrastats <- get_pums_dp(2024)                          # Returns expanded tables as separate items in a list
 #write_dprofile_pums_xlsx(xtrastats)                     # Write the expanded tables to .xlsx
 prettier <- format_for_report(xtrastats)                # Formats existing object (pivoting, asterisks, etc)
 write_dprofile_pums_xlsx(prettier)                      # Write the structured tables to .xlsx (will overwrite, so rename prior write)
