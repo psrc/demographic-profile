@@ -39,7 +39,7 @@ get_tbl14_lep_languages <- function(dyear, pums_rds="C:/Users/mjensen/projects/C
         					    TRUE ~ "Speak English 'very well'"))
 	)
 
-	languages <- reg_pums_count(filter(pp_df, AGEP >= 5), group_vars=c("LANP", "lep")) # First total for pop & min speakers
+	languages <- psrc_pums_count(filter(pp_df, AGEP >= 5), group_vars=c("LANP", "lep")) # First total for pop & min speakers
 
 
 	lep_languages	<- filter(languages, LANP != "Total" &
@@ -47,10 +47,7 @@ get_tbl14_lep_languages <- function(dyear, pums_rds="C:/Users/mjensen/projects/C
 	                                   (count + count_moe) > 1000) %>%
 		pull(LANP) %>% as.character() %>% unique()
 
-	all5plus_pop <- filter(languages, COUNTY == "Region" &                        # Regional population
-	                                  LANP == "Total" &
-                                    lep == "Total") %>%
-	  pull(count)
+	all5plus_pop <- max(languages$count)                                          # Regional population
 
 	lep_stats <- filter(pp_df, AGEP >= 5 & LANP %in% lep_languages) %>%
 		reg_pums_count(group_vars=c("LANP", "lep")) %>%
