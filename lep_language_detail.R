@@ -30,7 +30,7 @@ ctyreg_pums_count <- function(so, groupvars=NULL){                              
 
 # 3. Main function: Table 14 only -------------------------------------------
 
-get_tbl14_lep_languages <- function(dyear, pums_rds="C:/Users/mjensen/projects/Census/AmericanCommunitySurvey/Data/PUMS/pums_rds"){
+get_tbl14_lep_languages <- function(dyear, pums_rds="J:/Projects/Census/AmericanCommunitySurvey/Data/PUMS/pums_rds"){
 
 	pp_df <- get_psrc_pums(5, dyear, "p", pvars, dir=pums_rds) %>%                 # Retrieve person-level data
         mutate(lep = factor(
@@ -192,4 +192,4 @@ write_tbl14_xlsx <- function(tbl14,
 
 # Example --------------------------------------------------------------------
 # display_tbl14 <- get_tbl14_lep_languages(2024)
-# write_tbl14_xlsx(display_tbl14, file_path="tbl14_lep_languages.xlsx")
+# write_tbl14_xlsx(display_tbl14, file_path="T:/60day-TEMP/Mary/Other/tbl14_lep_languages.xlsx")
